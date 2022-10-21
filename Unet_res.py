@@ -11,6 +11,16 @@ from EvaluationUtils import MeanIoU
 from SegmentationModels import Residual_Unet
 from tensorflow_addons.optimizers import CyclicalLearningRate
 #mixed_precision.set_global_policy('mixed_float16') # -> can use larger batch size (double)
+from argparse import ArgumentParser
+
+parser = ArgumentParser('')
+
+parser.add_argument('-t', type=str, nargs='?')
+parser.add_argument('-m', type=str, nargs='?')
+parser.add_argument('-n', type=int, nargs='?', default='20', choices=[20,34])
+parser.add_argument('-p', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'ResNet'])
+parser.add_argument('-e', type=int, nargs='?', default='60')
+parser.add_argument('-b', type=int, nargs='?', default='3', choices=['1', '2', '3'])
 
 MODEL_TYPE = sys.argv[1]
 MODEL_NAME = sys.argv[2]
