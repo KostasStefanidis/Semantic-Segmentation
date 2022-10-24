@@ -3,19 +3,26 @@ import numpy as np
 from keras import backend as K
 from DatasetUtils import Dataset
 from EvaluationUtils import MeanIoU, ConfusionMatrix
-from Losses import Semantic_loss_functions
 from EvaluationUtils import ConfusionMatrix
 import sys
 import os
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
+from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss
+from argparse import ArgumentParser
 
-model_dir = '/home/kstef/kostas/saved_models'
-MODEL_TYPE = str(sys.argv[1])
-MODEL_NAME = str(sys.argv[2])
-NUM_CLASSES = int(sys.argv[3])
+parser = ArgumentParser('')
+parser.add_argument('-t', type=str, nargs='?', required=True)
+parser.add_argument('-m', type=str, nargs='?', required=True)
+parser.add_argument('-n', type=int, nargs='?', default='20', choices=[20,34])
+parser.add_argument('-p', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'ResNet'])
+args = parser.parse_args()
+
+MODEL_TYPE = args.t
+MODEL_NAME = args.m
+NUM_CLASSES = args.n
+PREPROCESSING = args.p
 BATCH_SIZE = 1
-PREPROCESSING = 'default'
 
 ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
 class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
@@ -23,6 +30,7 @@ class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
                'terrain', 'sky', 'person', 'rider', 'car', 'truck',
                'bus', 'train', 'motorcycle', 'bicycle', 'void']
 
+model_dir = '/home/kstef/kostas/saved_models'
 #############################################################################################
 data_path = ''  
 img_path = 'leftImg8bit_trainvaltest/leftImg8bit'
@@ -37,17 +45,16 @@ label_val_path =  data_path + label_path + val_path + val + label_type
 val_ds = Dataset(NUM_CLASSES, 'validation', PREPROCESSING, shuffle=False)
 val_ds = val_ds.create(img_val_path, label_val_path, BATCH_SIZE, use_patches=False, augment=False)
 
-s = Semantic_loss_functions()
-loss = s.dice_loss
-
 if NUM_CLASSES==34:
     ignore_class = ignore_ids
 else:
     ignore_class = 19
 
+loss = IoULoss()
+
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
-metrics = [s.jacard_coef, mean_iou, mean_iou_ignore]
+metrics = [mean_iou, mean_iou_ignore]
 
 model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
 model = tf.keras.models.load_model(model_filepath, compile=False)
