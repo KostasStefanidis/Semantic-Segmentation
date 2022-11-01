@@ -21,7 +21,6 @@ SPLIT = args.s
 BATCH_SIZE = 1
 
 MODEL_NAME = f'{MODEL_TYPE}/{MODEL_NAME}'
-PREPROCESSING = 'EfficientNet'
 MODELS_DIR = 'saved_models'
 pred_path = f'predictions/{MODEL_NAME}/{SPLIT}/grayscale'
 os.makedirs(pred_path, exist_ok=True)
@@ -29,7 +28,7 @@ os.makedirs(pred_path, exist_ok=True)
 data_path = ''
 
 ds = Dataset(NUM_CLASSES, SPLIT, PREPROCESSING, shuffle=False)
-ds = ds.create(data_path, BATCH_SIZE, use_patches=False, augment=False)
+ds = ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 # add val set filenames into a python list
 img_path_ds = tf.data.Dataset.list_files(f'leftImg8bit_trainvaltest/leftImg8bit/{SPLIT}/*/*.png', shuffle=False)
