@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 parser = ArgumentParser('')
 parser.add_argument('-t', type=str, nargs='?', required=True)
 parser.add_argument('-m', type=str, nargs='?', required=True)
-parser.add_argument('-s', type=str, nargs='?', choices=['train', 'validation', 'test'])
+parser.add_argument('-s', type=str, nargs='?', choices=['train', 'val', 'test'])
 args = parser.parse_args()
 
 MODEL_TYPE = args.t

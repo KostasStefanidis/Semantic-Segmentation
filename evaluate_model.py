@@ -4,11 +4,10 @@ from keras import backend as K
 from DatasetUtils import Dataset
 from EvaluationUtils import MeanIoU, ConfusionMatrix
 from EvaluationUtils import ConfusionMatrix
-import sys
 import os
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
-from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss
+from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
@@ -33,24 +32,21 @@ class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
 model_dir = '/home/kstef/kostas/saved_models'
 #############################################################################################
 data_path = ''  
-img_path = 'leftImg8bit_trainvaltest/leftImg8bit'
-label_path = 'gtFine_trainvaltest/gtFine'
-val_path = '/val'
-val = '/*'
-img_type = '/*.png'
-label_type = '/*_gtFine_labelIds.png'
-img_val_path = data_path + img_path + val_path + val + img_type
-label_val_path =  data_path + label_path + val_path + val + label_type
 
-val_ds = Dataset(NUM_CLASSES, 'validation', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(img_val_path, label_val_path, BATCH_SIZE, use_patches=False, augment=False)
+val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 if NUM_CLASSES==34:
     ignore_class = ignore_ids
 else:
     ignore_class = 19
 
-loss = IoULoss()
+#loss = IoULoss(class_weights=np.load('class_weights/class_weights.npy'))
+#loss = DiceLoss()
+#loss = TverskyLoss()
+#loss = FocalTverskyLoss(beta=0.5) # -> FocalDice
+loss = HybridLoss()
+#loss = FocalHybridLoss
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)

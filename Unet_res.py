@@ -1,16 +1,15 @@
-# import sys
-# import os
-# import tensorflow as tf
-# from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
-# from tensorflow.keras.optimizers import Adam, SGD
-# from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
-# from tensorflow.keras import mixed_precision
-# from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss
-# from DatasetUtils import Dataset
-# from EvaluationUtils import MeanIoU
-# from SegmentationModels import Residual_Unet
-# from tensorflow_addons.optimizers import CyclicalLearningRate
-#mixed_precision.set_global_policy('mixed_float16') # -> can use larger batch size (double)
+import os
+import tensorflow as tf
+from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
+from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
+from tensorflow.keras import mixed_precision
+from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
+from DatasetUtils import Dataset
+from EvaluationUtils import MeanIoU
+from SegmentationModels import Residual_Unet
+from tensorflow_addons.optimizers import CyclicalLearningRate
+# mixed_precision.set_global_policy('mixed_float16') # -> can use larger batch size (double)
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
@@ -36,87 +35,73 @@ DROPOUT_OFFSET = 0.02
 
 ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
 
-print(MODEL_TYPE, MODEL_NAME, NUM_CLASSES, PREPROCESSING, EPOCHS, BATCH_SIZE)
-# ##########################################################################
-# data_path = ''  
-# img_path = 'leftImg8bit_trainvaltest/leftImg8bit'
-# label_path = 'gtFine_trainvaltest/gtFine'
-# train_path = '/train'
-# val_path = '/val'
-# test_path = '/test'
-# train = '/*'
-# val = '/*'
-# test = '/*'
-# img_type = '/*.png'
-# label_type = '/*_gtFine_labelIds.png'
+##########################################################################
+data_path = ''  
 
-# img_train_path = data_path + img_path + train_path + train + img_type
-# img_val_path = data_path + img_path + val_path + val + img_type
-# img_test_path = data_path + img_path + test_path + test + img_type
+# -------------------------------CALLBACKS---------------------------------------------------
+checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
+model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
+                                            save_weights_only=False,
+                                            monitor='val_MeanIoU',
+                                            mode='max',
+                                            save_best_only=True,
+                                            verbose=0)
 
-# label_train_path = data_path + label_path + train_path + train + label_type
-# label_val_path =  data_path + label_path + val_path + val + label_type
-# label_test_path = data_path + label_path + test_path + test + label_type
+log_dir = f'Tensorboard_logs/{MODEL_TYPE}/{MODEL_NAME}'
+tensorboard_callback = TensorBoard(log_dir=log_dir,
+                                histogram_freq=0,
+                                write_graph=False,
+                                write_steps_per_second=False)
 
-# # -------------------------------CALLBACKS---------------------------------------------------
-# checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
-# model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
-#                                             save_weights_only=False,
-#                                             monitor='val_MeanIoU',
-#                                             mode='max',
-#                                             save_best_only=True,
-#                                             verbose=0)
+# csv_logs_dir = f'CSV_logs/{MODEL_TYPE}/{MODEL_NAME}.csv'
+# os.makedirs(csv_logs_dir, exist_ok=True)
+# csv_callback = CSVLogger(csv_logs_dir)
 
-# log_dir = f'Tensorboard_logs/{MODEL_TYPE}/{MODEL_NAME}'
-# tensorboard_callback = TensorBoard(log_dir=log_dir,
-#                                 histogram_freq=0,
-#                                 write_graph=False,
-#                                 write_steps_per_second=False)
+callbacks = [model_checkpoint_callback, tensorboard_callback]
+# -------------------------------------------------------------------------------------------
 
-# # csv_logs_dir = f'CSV_logs/{MODEL_TYPE}/{MODEL_NAME}.csv'
-# # os.makedirs(csv_logs_dir, exist_ok=True)
-# # csv_callback = CSVLogger(csv_logs_dir)
+train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+train_ds = train_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
-# callbacks = [model_checkpoint_callback, tensorboard_callback]
-# # -------------------------------------------------------------------------------------------
+val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
-# train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-# train_ds = train_ds.create(img_train_path, label_train_path, BATCH_SIZE, use_patches=False, augment=False)
+model = Residual_Unet(input_shape=INPUT_SHAPE,
+                      filters=FILTERS,
+                      num_classes=NUM_CLASSES,
+                      activation=ACTIVATION,
+                      dropout_rate=DROPOUT_RATE,
+                      dropout_type='normal',
+                      scale_dropout=False,
+                      dropout_offset=DROPOUT_OFFSET,
+                      )
 
-# val_ds = Dataset(NUM_CLASSES, 'validation', PREPROCESSING, shuffle=False)
-# val_ds = val_ds.create(img_val_path, label_val_path, BATCH_SIZE, use_patches=False, augment=False)
+model.summary()
 
-# model = Residual_Unet(input_shape=INPUT_SHAPE,
-#                       filters=FILTERS,
-#                       num_classes=NUM_CLASSES,
-#                       activation=ACTIVATION,
-#                       dropout_rate=DROPOUT_RATE,
-#                       dropout_type='normal',
-#                       scale_dropout=False,
-#                       dropout_offset=DROPOUT_OFFSET,
-#                       )
+#loss = IoULoss(class_weights=np.load('class_weights/class_weights.npy'))
+#loss = DiceLoss()
+#loss = TverskyLoss()
+#loss = FocalTverskyLoss(beta=0.5) # -> FocalDice
+loss = HybridLoss()
+#loss = FocalHybridLoss
 
-# model.summary()
+#optimizer = AdamW(weight_decay=1e-5)
+optimizer = Adam()
 
-# loss = IoULoss()
+if NUM_CLASSES==34:
+    ignore_class = ignore_ids
+else:
+    ignore_class = 19
 
-# optimizer = AdamW(weight_decay=1e-5)
-# #optimizer = Adam()
+mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
+mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
+metrics = [mean_iou, mean_iou_ignore]
 
-# if NUM_CLASSES==34:
-#     ignore_class = ignore_ids
-# else:
-#     ignore_class = 19
+model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
-# mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
-# mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
-# metrics = [mean_iou]
-
-# model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
-
-# history = model.fit(train_ds,
-#                     validation_data=val_ds,
-#                     epochs=EPOCHS,
-#                     callbacks = callbacks,
-#                     verbose = 1
-#                     )
+history = model.fit(train_ds,
+                    validation_data=val_ds,
+                    epochs=EPOCHS,
+                    callbacks = callbacks,
+                    verbose = 1
+                    )

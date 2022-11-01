@@ -10,7 +10,7 @@ parser.add_argument('-t', type=str, nargs='?', required=True)
 parser.add_argument('-m', type=str, nargs='?', required=True)
 parser.add_argument('-n', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('-p', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'ResNet'])
-parser.add_argument('-s', type=str, nargs='?', choices=['train', 'validation', 'test'])
+parser.add_argument('-s', type=str, nargs='?', choices=['train', 'val', 'test'])
 args = parser.parse_args()
 
 MODEL_TYPE = args.t
@@ -26,34 +26,13 @@ MODELS_DIR = 'saved_models'
 pred_path = f'predictions/{MODEL_NAME}/{SPLIT}/grayscale'
 os.makedirs(pred_path, exist_ok=True)
 
-data_path = ''  
-img_path = 'leftImg8bit_trainvaltest/leftImg8bit'
-label_path = 'gtFine_trainvaltest/gtFine'
-val_path = '/val'
-test_path = '/test'
-val = '/*'
-test = '/*'
-img_type = '/*.png'
-label_type = '/*_gtFine_labelIds.png'
-
-img_val_path = data_path + img_path + val_path + val + img_type
-img_test_path = data_path + img_path + test_path + test + img_type
-
-label_val_path =  data_path + label_path + val_path + val + label_type
-label_test_path = data_path + label_path + test_path + test + label_type
-
-if SPLIT == 'validation':
-    img_path = img_val_path
-    label_path = label_val_path
-else:
-    img_path = img_test_path
-    label_path = label_test_path
+data_path = ''
 
 ds = Dataset(NUM_CLASSES, SPLIT, PREPROCESSING, shuffle=False)
-ds = ds.create(img_path, label_path, BATCH_SIZE, use_patches=False, augment=False)
+ds = ds.create(data_path, BATCH_SIZE, use_patches=False, augment=False)
 
 # add val set filenames into a python list
-img_path_ds = tf.data.Dataset.list_files(img_path, shuffle=False)
+img_path_ds = tf.data.Dataset.list_files(f'leftImg8bit_trainvaltest/leftImg8bit/{SPLIT}/*/*.png', shuffle=False)
 img_name_list = []
 for img_path in img_path_ds:
     split = tf.strings.split(img_path, sep='/').numpy()

@@ -93,7 +93,7 @@ class Augment(tf.keras.layers.Layer):
 
 class Dataset():
     def __init__(self, num_classes: int, split:str, preprocessing='default', shuffle=True):
-        assert split in ['train', 'validation', 'test'], 'split must one of: "train", "validation", "test".'
+        assert split in ['train', 'val', 'test'], 'split must one of: "train", "val", "test".'
         assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value given was {num_classes}'
         
         self.num_classes = num_classes
@@ -103,15 +103,30 @@ class Dataset():
         self.ignore_ids = [-1,0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
         self.eval_ids =   [7,8,11,12,13,17,19,20,21,22,23,24,25,26,27,28,31,32,33]
         self.train_ids =  [0,1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18]
+        
+        self.img_path = 'leftImg8bit_trainvaltest/leftImg8bit/'
+        self.label_path = 'gtFine_trainvaltest/gtFine/'
+        self.img_suffix = '*.png'
+        self.label_suffix = '*_gtFine_labelIds.png'
     
     
-    def read_path(self, ds_path):
-        ds = ds_path.map(tf.io.read_file)
+    def construct_path(self, data_path: str, subfolder: str):
+        if subfolder == 'all':
+            subfolder = '*'
+        image_path = data_path + self.img_path + self.split + '/' + subfolder + '/' + self.img_suffix
+        label_path = data_path + self.label_path + self.split + '/' + subfolder + '/' + self.label_suffix
+        return image_path, label_path
+    
+    
+    def decode_dataset(self, path_ds):
+        ds = path_ds.map(tf.io.read_file)
         ds = ds.map(tf.image.decode_image)
         return ds
 
 
-    def ds_from_path(self, img_path: str, label_path: str, seed: int):
+    def dataset_from_path(self, data_path: str, subfolder: str, seed: int):
+        img_path, label_path = self.construct_path(data_path, subfolder)
+        
         # either shuffle=None and the shuffling is done by passing a seed to the random generator
         # or shuffle=False and seed=None and we get the files in deterministic order
         if self.shuffle == True:
@@ -126,8 +141,8 @@ class Dataset():
         label_path_ds = tf.data.Dataset.list_files(label_path, seed=seed, shuffle=shuffle)
         
         # read and decode files
-        img = self.read_path(img_path_ds)
-        label = self.read_path(label_path_ds)
+        img = self.decode_dataset(img_path_ds)
+        label = self.decode_dataset(label_path_ds)
         
         dataset = tf.data.Dataset.zip((img, label))
         return dataset
@@ -187,10 +202,7 @@ class Dataset():
                 label = tf.where(label==eval_id, train_id, label)
             label = tf.where(label==34, 19, label)
 
-        label = tf.one_hot(label, self.num_classes)
-
-        # keep only classes to be evaluated, discard class no 19 which contains all the ignored classes condensed
-        # label = tf.gather(label, indices=self.eval_ids, axis=-1)
+        label = tf.one_hot(label, self.num_classes, name='ground_truth')
         return label
 
     
@@ -213,7 +225,7 @@ class Dataset():
         # no evaluation can be done on the test set, only prediction
         if self.split != 'test':
             ds = ds.map(lambda image, label: (image, self.preprocess_label(label)),
-                        num_parallel_calls=tf.data.AUTOTUNE)           
+                        num_parallel_calls=tf.data.AUTOTUNE)         
         return ds
 
 
@@ -225,8 +237,8 @@ class Dataset():
 
 
     def create(self,
-               img_path: str,
-               label_path: str,
+               data_path: str,
+               subfolder: str = 'all',
                batch_size: int = 1,
                use_patches: bool = False,
                augment: bool = False,
@@ -240,7 +252,7 @@ class Dataset():
             batch = False
         else:
             batch = True
-        ds = self.ds_from_path(img_path, label_path, seed)
+        ds = self.dataset_from_path(data_path, subfolder, seed)
         ds = self.preprocess_dataset(ds, use_patches, augment, seed)
         ds = self.configure_for_performance(ds, batch, batch_size)
         return ds
