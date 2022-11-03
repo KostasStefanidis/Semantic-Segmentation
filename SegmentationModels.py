@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import Tensor
 from keras import backend as K
 from keras import Model
-from keras.initializers import HeNormal
+from tensorflow.keras.initializers import HeNormal
 from keras.layers import Add, Multiply
 from keras.layers import GlobalAveragePooling2D, Reshape
 from keras.layers import Conv2D, Conv2DTranspose, Concatenate, Dense
@@ -133,7 +133,7 @@ def upsampling_block(input_tensor: Tensor,
     return x
 
 
-def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, depth: int) -> Model:    
+def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, depth: int, unfreeze_at: str) -> Model:    
     backbone_layers = {
     'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
     'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
@@ -172,7 +172,11 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
     backbone = Model(inputs=input_tensor, outputs=X_skip, name=f'{backbone_name}_backbone')
     if freeze_backbone:
         backbone.trainable = False
-    
+    elif unfreeze_at is not None:
+        layer_dict = {layer.name: i for i,layer in enumerate(backbone.layers)}
+        unfreeze_index = layer_dict[unfreeze_at]
+        for layer in backbone.layers[:unfreeze_index]:
+            layer.trainable = False
     return backbone
 
 
@@ -187,7 +191,8 @@ def base_Unet(unet_type: str,
               dropout_offset: float,
               kernel_initializer,
               backbone_name = None,
-              freeze_backbone = True
+              freeze_backbone = True,
+              unfreeze_at: str = None
               ):
 
     depth = len(filters)
@@ -226,7 +231,7 @@ def base_Unet(unet_type: str,
         # (5 in total) we need to perform upsampling 5 times and not 4 (as without backbone)
         
         # Pre-trained Backbone as Encoder
-        backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth)
+        backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
         Skip = backbone(x0, training=False)
         
         # Bottleneck
@@ -257,7 +262,8 @@ def Unet(input_shape: tuple,
          dropout_offset = 0.01,
          kernel_initializer = HeNormal(42),
          backbone_name = None,
-         freeze_backbone= True
+         freeze_backbone= True,
+         unfreeze_at: str = None
          ):
 
     return  base_Unet('normal', 
@@ -271,7 +277,8 @@ def Unet(input_shape: tuple,
                       dropout_offset,
                       kernel_initializer,
                       backbone_name=backbone_name,
-                      freeze_backbone=freeze_backbone)
+                      freeze_backbone=freeze_backbone,
+                      unfreeze_at=unfreeze_at)
 
 
 def Residual_Unet(input_shape: tuple,
@@ -284,7 +291,8 @@ def Residual_Unet(input_shape: tuple,
                   dropout_offset: float = 0.01,
                   kernel_initializer = HeNormal(42),
                   backbone_name = None,
-                  freeze_backbone= True                      
+                  freeze_backbone= True,
+                  unfreeze_at: str = None
                   ):
     
     return  base_Unet('residual', 
@@ -298,7 +306,8 @@ def Residual_Unet(input_shape: tuple,
                       dropout_offset,
                       kernel_initializer,
                       backbone_name=backbone_name,
-                      freeze_backbone=freeze_backbone)
+                      freeze_backbone=freeze_backbone,
+                      unfreeze_at=unfreeze_at)
 
 
 def Attention_Unet(input_shape: tuple,
@@ -311,7 +320,8 @@ def Attention_Unet(input_shape: tuple,
                    dropout_offset: float = 0.01,
                    kernel_initializer = HeNormal(42),
                    backbone_name = None,
-                   freeze_backbone= True 
+                   freeze_backbone= True,
+                   unfreeze_at: str = None
                    ):
     
     return  base_Unet('attention', 
@@ -325,7 +335,8 @@ def Attention_Unet(input_shape: tuple,
                       dropout_offset,
                       kernel_initializer,
                       backbone_name=backbone_name,
-                      freeze_backbone=freeze_backbone)
+                      freeze_backbone=freeze_backbone,
+                      unfreeze_at=unfreeze_at)
 
 
 def Unet_plus(input_shape: tuple,
