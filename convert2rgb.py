@@ -2,7 +2,7 @@ import numpy as np
 import os
 import tensorflow as tf
 import sys
-from DatasetUtils import color_dict
+from DatasetUtils import color_map
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
@@ -29,6 +29,6 @@ for filename in filenames:
     img = tf.image.decode_png(img)
     img = tf.squeeze(img).numpy()
     rgb_img = np.zeros((*img.shape, 3)) 
-    for key in color_dict.keys():
-        rgb_img[img == key] = color_dict[key]
+    for key in color_map.keys():
+        rgb_img[img == key] = color_map[key]
     tf.keras.utils.save_img(f'{rgb_path}/{filename}', rgb_img, data_format='channels_last', scale=False)

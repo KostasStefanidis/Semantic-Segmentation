@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import Tensor
 from keras import backend as K
 from keras import Model
-from tensorflow.keras.initializers import HeNormal
+from keras.initializers import HeNormal
 from keras.layers import Add, Multiply
 from keras.layers import GlobalAveragePooling2D, Reshape
 from keras.layers import Conv2D, Conv2DTranspose, Concatenate, Dense
@@ -153,7 +153,12 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
     'EfficientNetB6': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
     'EfficientNetB7': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
     'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation')
+    'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2B2': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2B3': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2S' : ('block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2M' : ('block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation')
     }
     
     layer_names = backbone_layers[backbone_name]

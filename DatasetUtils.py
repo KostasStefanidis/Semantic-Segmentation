@@ -8,7 +8,7 @@ from keras.layers import RandomFlip
 import tensorflow_addons as tfa
 
 # dictionary that contains the mapping of the class numbers to rgb color values
-color_dict = {0: [0, 0, 0],
+color_map =  {0: [0, 0, 0],
               1: [0, 0, 0],
               2: [0, 0, 0],
               3: [0, 0, 0],
