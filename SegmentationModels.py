@@ -120,7 +120,6 @@ def upsampling_block(input_tensor: Tensor,
     up = BatchNormalization()(up)
     up = Activation(activation)(up)
 
-    
     if skip_connection is not None:    
         if unet_type == 'attention':
             att = visual_attention_block(skip_connection, up, kernel_initializer)   
@@ -190,14 +189,14 @@ def base_Unet(unet_type: str,
               filters: tuple, 
               num_classes: int,
               activation: str,
-              dropout_rate: float, 
+              dropout_rate: float,
               dropout_type: str,              
               scale_dropout: bool,
               dropout_offset: float,
               kernel_initializer,
               backbone_name = None,
               freeze_backbone = True,
-              unfreeze_at: str = None
+              unfreeze_at = None
               ):
 
     depth = len(filters)
@@ -233,7 +232,8 @@ def base_Unet(unet_type: str,
 
     else:
         # when using bakcbone because the stem performs downsampling and we have another 4 downsampling layers
-        # (5 in total) we need to perform upsampling 5 times and not 4 (as without backbone)
+        # (5 in total) we need to perform upsampling 5 times and not 4 (as without backbone) -> 6 total Unet levels
+        # but no skip connection from the top level (full spatial dimension)
         
         # Pre-trained Backbone as Encoder
         backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
@@ -252,9 +252,68 @@ def base_Unet(unet_type: str,
     model = Model(inputs=x0, outputs=output, name=f'{unet_type}_U-net' if unet_type != 'normal' else 'U-net')
     return model
 
+def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, kernel_initializer):
+    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same' ,kernel_initializer=kernel_initializer)(input)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation(activation)(x1)
+    
+    x2 = Conv2D(filters, kernel_size=3, dilation_rate=6, padding='same', kernel_initializer=kernel_initializer)(input)
+    x2 = BatchNormalization()(x2)
+    x2 = Activation(activation)(x2)
+    
+    x3 = Conv2D(filters, kernel_size=3, dilation_rate=12, padding='same', kernel_initializer=kernel_initializer)(input)
+    x3 = BatchNormalization()(x3)
+    x3 = Activation(activation)(x3)
+    
+    x4 = Conv2D(filters, kernel_size=3, dilation_rate=18, padding='same', kernel_initializer=kernel_initializer)(input)
+    x4 = BatchNormalization()(x4)
+    x4 = Activation(activation)(x4)
+    
+    x = Concatenate()([x1,x2,x3,x4])
+    return x
 
-def DeepLabeV3plus():
-    return
+def DeepLabeV3plus(input_shape: tuple,
+                   filters: tuple,
+                   num_classes: int,
+                   activation: str,
+                   dropout_rate: float,
+                   dropout_type = 'normal',
+                   kernel_initializer = HeNormal(42),
+                   backbone_name = None,
+                   freeze_backbone = True,
+                   unfreeze_at = None,
+                   unet_type = 'residual'):
+    
+    depth = len(filters)
+    
+    x0 = tf.keras.Input(shape=input_shape)
+    
+    backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+    Skip = backbone(x0, training=False)
+ 
+    # Bottleneck
+    x = Skip[-1]
+    
+    low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(Skip[2])
+    
+    x = spatial_pyramid_pooling(x, 256, activation, kernel_initializer)
+    
+    # 1x1 mapping of the spatial_pyramid features
+    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=kernel_initializer)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    
+    # Decoder
+    x = UpSampling2D(size=4, interpolation='bilinear')(x)
+    x = Concatenate(axis=-1)([x, low_level_features])
+    x = conv_block(x, 256, dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    
+    x = UpSampling2D(size=8, interpolation='bilinear')(x)
+
+    output = Conv2D(num_classes, kernel_size=(1,1), kernel_initializer=kernel_initializer)(x)
+    output = Activation('softmax', name='output', dtype='float32')(output)
+    model = Model(inputs=x0, outputs=output, name=f'DeepLabV3plus')
+    return model
 
 
 def Unet(input_shape: tuple,
@@ -268,7 +327,7 @@ def Unet(input_shape: tuple,
          kernel_initializer = HeNormal(42),
          backbone_name = None,
          freeze_backbone= True,
-         unfreeze_at: str = None
+         unfreeze_at = None
          ):
 
     return  base_Unet('normal', 
@@ -297,7 +356,7 @@ def Residual_Unet(input_shape: tuple,
                   kernel_initializer = HeNormal(42),
                   backbone_name = None,
                   freeze_backbone= True,
-                  unfreeze_at: str = None
+                  unfreeze_at = None
                   ):
     
     return  base_Unet('residual', 
@@ -326,7 +385,7 @@ def Attention_Unet(input_shape: tuple,
                    kernel_initializer = HeNormal(42),
                    backbone_name = None,
                    freeze_backbone= True,
-                   unfreeze_at: str = None
+                   unfreeze_at = None
                    ):
     
     return  base_Unet('attention', 
