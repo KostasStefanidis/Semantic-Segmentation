@@ -184,7 +184,8 @@ class Dataset():
             'default': normalization_layer,
             #'DenseNet': tf.keras.applications.densenet.preprocess_input, #todo: solve issue
             'ResNet': tf.keras.applications.resnet.preprocess_input, 
-            'EfficientNet' : tf.keras.applications.efficientnet.preprocess_input
+            'EfficientNet' : tf.keras.applications.efficientnet.preprocess_input,
+            'EfficientNetV2' : tf.keras.applications.efficientnet_v2.preprocess_input
         }
         preprocess_input = preprocessing_options[self.preprocessing]
         return preprocess_input(image)

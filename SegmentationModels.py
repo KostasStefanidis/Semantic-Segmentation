@@ -164,16 +164,17 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
     
     backbone_func = eval(backbone_name)
     backbone_ = backbone_func(include_top=False,
-                              weights='imagenet',
-                              input_tensor=input_tensor,
-                              pooling=None)
+                            weights='imagenet',
+                            input_tensor=input_tensor,
+                            pooling=None)
 
     X_skip = []
     # get the output of intermediate backbone layers to use them as skip connections
     for i in range(depth):
         X_skip.append(backbone_.get_layer(layer_names[i]).output)
-    
+        
     backbone = Model(inputs=input_tensor, outputs=X_skip, name=f'{backbone_name}_backbone')
+        
     if freeze_backbone:
         backbone.trainable = False
     elif unfreeze_at is not None:
@@ -252,37 +253,41 @@ def base_Unet(unet_type: str,
     model = Model(inputs=x0, outputs=output, name=f'{unet_type}_U-net' if unet_type != 'normal' else 'U-net')
     return model
 
-def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, kernel_initializer):
-    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same' ,kernel_initializer=kernel_initializer)(input)
+def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dropout_type, dropout_rate, kernel_initializer):
+    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(input)
     x1 = BatchNormalization()(x1)
     x1 = Activation(activation)(x1)
+    x1 = dropout_layer(x1, dropout_type, dropout_rate)
     
     x2 = Conv2D(filters, kernel_size=3, dilation_rate=6, padding='same', kernel_initializer=kernel_initializer)(input)
     x2 = BatchNormalization()(x2)
     x2 = Activation(activation)(x2)
+    x2 = dropout_layer(x2, dropout_type, dropout_rate)
     
     x3 = Conv2D(filters, kernel_size=3, dilation_rate=12, padding='same', kernel_initializer=kernel_initializer)(input)
     x3 = BatchNormalization()(x3)
     x3 = Activation(activation)(x3)
+    x3 = dropout_layer(x3, dropout_type, dropout_rate)
     
     x4 = Conv2D(filters, kernel_size=3, dilation_rate=18, padding='same', kernel_initializer=kernel_initializer)(input)
     x4 = BatchNormalization()(x4)
     x4 = Activation(activation)(x4)
+    x4 = dropout_layer(x4, dropout_type, dropout_rate)
     
     x = Concatenate()([x1,x2,x3,x4])
     return x
 
-def DeepLabeV3plus(input_shape: tuple,
-                   filters: tuple,
-                   num_classes: int,
-                   activation: str,
-                   dropout_rate: float,
-                   dropout_type = 'normal',
-                   kernel_initializer = HeNormal(42),
-                   backbone_name = None,
-                   freeze_backbone = True,
-                   unfreeze_at = None,
-                   unet_type = 'residual'):
+
+def DeepLabV3plus(input_shape: tuple,
+                  filters: tuple,
+                  num_classes: int,
+                  activation: str,
+                  dropout_type = 'normal', 
+                  dropout_rate = 0.0,
+                  kernel_initializer = HeNormal(42),
+                  backbone_name = None,
+                  freeze_backbone = True,
+                  unfreeze_at = None):
     
     depth = len(filters)
     
@@ -296,21 +301,29 @@ def DeepLabeV3plus(input_shape: tuple,
     
     low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(Skip[2])
     
-    x = spatial_pyramid_pooling(x, 256, activation, kernel_initializer)
+    x = spatial_pyramid_pooling(x, 256, activation, dropout_type, dropout_rate, kernel_initializer)
     
     # 1x1 mapping of the spatial_pyramid features
     x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=kernel_initializer)(x)
     x = BatchNormalization()(x)
     x = Activation(activation)(x)
+    x = dropout_layer(x, dropout_type, dropout_rate)
     
     # Decoder
     x = UpSampling2D(size=4, interpolation='bilinear')(x)
     x = Concatenate(axis=-1)([x, low_level_features])
-    x = conv_block(x, 256, dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    
+    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    x = dropout_layer(x, dropout_type, dropout_rate)
     
     x = UpSampling2D(size=8, interpolation='bilinear')(x)
 
-    output = Conv2D(num_classes, kernel_size=(1,1), kernel_initializer=kernel_initializer)(x)
+    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x)
     output = Activation('softmax', name='output', dtype='float32')(output)
     model = Model(inputs=x0, outputs=output, name=f'DeepLabV3plus')
     return model

@@ -2,8 +2,7 @@ import tensorflow as tf
 import numpy as np
 from keras import backend as K
 from DatasetUtils import Dataset
-from EvaluationUtils import MeanIoU, ConfusionMatrix
-from EvaluationUtils import ConfusionMatrix
+from EvaluationUtils import MeanIoU
 import os
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
@@ -41,16 +40,35 @@ if NUM_CLASSES==34:
 else:
     ignore_class = 19
 
-#loss = IoULoss(class_weights=np.load('class_weights/class_weights.npy'))
-#loss = DiceLoss()
-#loss = TverskyLoss()
-#loss = FocalTverskyLoss(beta=0.5) # -> FocalDice
 loss = HybridLoss()
-#loss = FocalHybridLoss
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
-metrics = [mean_iou, mean_iou_ignore]
+iou_0 = MeanIoU(NUM_CLASSES, name='IoU_road', target_class_ids=[0])
+iou_1 = MeanIoU(NUM_CLASSES, name='IoU_sidewalk', target_class_ids=[1])
+iou_2 = MeanIoU(NUM_CLASSES, name='IoU_building', target_class_ids=[2])
+iou_3 = MeanIoU(NUM_CLASSES, name='IoU_wall', target_class_ids=[3])
+iou_4 = MeanIoU(NUM_CLASSES, name='IoU_fence', target_class_ids=[4])
+iou_5 = MeanIoU(NUM_CLASSES, name='IoU_pole', target_class_ids=[5])
+iou_6 = MeanIoU(NUM_CLASSES, name='IoU_traffic light', target_class_ids=[6])
+iou_7 = MeanIoU(NUM_CLASSES, name='IoU_traffic sign', target_class_ids=[7])
+iou_8 = MeanIoU(NUM_CLASSES, name='IoU_vegetation', target_class_ids=[8])
+iou_9 = MeanIoU(NUM_CLASSES, name='IoU_terrain', target_class_ids=[9])
+iou_10 = MeanIoU(NUM_CLASSES, name='IoU_sky', target_class_ids=[10])
+iou_11 = MeanIoU(NUM_CLASSES, name='IoU_person', target_class_ids=[11])
+iou_12 = MeanIoU(NUM_CLASSES, name='IoU_rider', target_class_ids=[12])
+iou_13 = MeanIoU(NUM_CLASSES, name='IoU_car', target_class_ids=[13])
+iou_14 = MeanIoU(NUM_CLASSES, name='IoU_truck', target_class_ids=[14])
+iou_15 = MeanIoU(NUM_CLASSES, name='IoU_bus', target_class_ids=[15])
+iou_16 = MeanIoU(NUM_CLASSES, name='IoU_train', target_class_ids=[16])
+iou_17 = MeanIoU(NUM_CLASSES, name='IoU_motorcycle', target_class_ids=[17])
+iou_18 = MeanIoU(NUM_CLASSES, name='IoU_bicycle', target_class_ids=[18])
+metrics = [mean_iou, mean_iou_ignore,
+           iou_0, iou_1, iou_2, iou_3,
+           iou_4, iou_5, iou_6, iou_7,
+           iou_8, iou_9, iou_10, iou_11,
+           iou_12, iou_13, iou_14, iou_15,
+           iou_16, iou_17, iou_18]
 
 model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
 model = tf.keras.models.load_model(model_filepath, compile=False)

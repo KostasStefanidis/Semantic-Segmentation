@@ -5,31 +5,12 @@ from keras import backend
 import numpy as np
 from keras.losses import Loss
 
-
-class IoULoss(Loss):
-    def __init__(self, class_weights=None):
-        super().__init__()
-        if class_weights is not None:
-            class_weights = list(class_weights)
-            self.class_weights = tf.convert_to_tensor(class_weights)
-        else:
-            self.class_weights = tf.ones(1)
-        
-    def call(self, y_true, y_pred):
-        intersection = tf.reduce_sum(y_pred * y_true, axis=[1,2])
-        denominator =  tf.reduce_sum(y_pred, axis=[1,2]) + tf.reduce_sum(y_true, axis=[1,2]) - intersection
-        iou_vector = intersection/denominator
-        # weigh the score of each class
-        iou_vector = iou_vector * self.class_weights
-        iou_score = tf.reduce_mean(iou_vector, axis=-1)
-        return 1 - iou_score
-
-
 class MeanIoU(Metric):
     def __init__(self,
                  num_classes:int,
                  name=None,
                  dtype=None,
+                 target_class_ids = None,
                  ignore_class: int = None,
                  sparse_y_true: bool = False,
                  sparse_y_pred: bool = False,
@@ -38,6 +19,7 @@ class MeanIoU(Metric):
         super(MeanIoU, self).__init__(name=name, dtype=dtype)
         self.num_classes = num_classes
         self.ignore_class = ignore_class
+        self.target_class_ids = list(target_class_ids)
         self.sparse_y_true = sparse_y_true
         self.sparse_y_pred = sparse_y_pred
         self.axis = axis
@@ -103,6 +85,10 @@ class MeanIoU(Metric):
         #     2 * true_positives + false_positives + false_negatives.
         denominator = sum_over_row + sum_over_col - true_positives
 
+        if self.target_class_ids is not None:
+            true_positives = tf.gather(true_positives, self.target_class_ids)
+            denominator = tf.gather(denominator, self.target_class_ids)
+        
         # The mean is only computed over classes that appear in the
         # label or prediction tensor. If the denominator is 0, we need to
         # ignore the class.
@@ -125,31 +111,4 @@ class MeanIoU(Metric):
         return dict(list(base_config.items()) + list(config.items()))
     
     def get_confusion_matrix(self):
-        return self.total_cm.numpy()    
-    
-
-class ConfusionMatrix():
-    def __init__(self, num_classes):
-        self.total_cm = tf.zeros(shape=(num_classes, num_classes))
-        self.num_classes = num_classes
-        
-    def update(self, y_true, y_pred):
-        y_true = tf.argmax(y_true, axis=-1)
-        y_pred = tf.argmax(y_pred, axis=-1) #self.axis
-        
-        # Flatten the input if its rank > 1.
-        if y_pred.shape.ndims > 1:
-            y_pred = tf.reshape(y_pred, [-1])
-
-        if y_true.shape.ndims > 1:
-            y_true = tf.reshape(y_true, [-1])
-        
-        current_cm = tf.math.confusion_matrix(y_true,
-                                              y_pred,
-                                              self.num_classes,
-                                              )
-    
-        self.total_cm.assign_add(current_cm)
-
-    def __str__(self):
-        print(self.total_cm.numpy())
+        return self.total_cm.numpy()
