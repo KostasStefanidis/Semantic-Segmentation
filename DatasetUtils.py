@@ -182,7 +182,6 @@ class Dataset():
         normalization_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
         preprocessing_options = {
             'default': normalization_layer,
-            #'DenseNet': tf.keras.applications.densenet.preprocess_input, #todo: solve issue
             'ResNet': tf.keras.applications.resnet.preprocess_input, 
             'EfficientNet' : tf.keras.applications.efficientnet.preprocess_input,
             'EfficientNetV2' : tf.keras.applications.efficientnet_v2.preprocess_input
@@ -192,10 +191,9 @@ class Dataset():
     
     
     def preprocess_label(self, label:tf.Tensor):
-        # squeeze axis' with dimension=1
         label = tf.cast(tf.squeeze(label), tf.int32)
         
-        # Replace eval ids with train ids if number of classes = 20 (19 evaluated classes + 1 void class)
+        # Map eval ids to train ids
         if self.num_classes==20:    
             for id in self.ignore_ids:
                 label = tf.where(label==id, 34, label)
@@ -203,7 +201,7 @@ class Dataset():
                 label = tf.where(label==eval_id, train_id, label)
             label = tf.where(label==34, 19, label)
 
-        label = tf.one_hot(label, self.num_classes, name='ground_truth')
+        label = tf.one_hot(label, self.num_classes, dtype=tf.uint8, name='ground_truth')
         return label
 
     
@@ -230,7 +228,7 @@ class Dataset():
         return ds
 
 
-    def configure_for_performance(self, ds, batch: bool, batch_size: int):
+    def configure_dataset(self, ds, batch: bool, batch_size: int):
         if batch:
             ds = ds.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
         ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
@@ -255,5 +253,5 @@ class Dataset():
             batch = True
         ds = self.dataset_from_path(data_path, subfolder, seed)
         ds = self.preprocess_dataset(ds, use_patches, augment, seed)
-        ds = self.configure_for_performance(ds, batch, batch_size)
+        ds = self.configure_dataset(ds, batch, batch_size)
         return ds
