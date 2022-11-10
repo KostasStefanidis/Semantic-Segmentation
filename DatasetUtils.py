@@ -1,11 +1,11 @@
 import tensorflow as tf
-from keras.layers import RandomContrast
 from keras.models import Sequential
 from keras import backend as K
 from tensorflow import Tensor
 import random
-from keras.layers import RandomFlip
+from keras.layers import RandomFlip, RandomBrightness, RandomContrast
 import tensorflow_addons as tfa
+from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
 
 # dictionary that contains the mapping of the class numbers to rgb color values
 color_map =  {0: [0, 0, 0],
@@ -44,30 +44,20 @@ color_map =  {0: [0, 0, 0],
               33: [119, 11, 32]
               }
 
-#from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
+class RandomGaussianBlur(BaseImageAugmentationLayer):
+    def __init__(self, max_sigma: float, min_kernel_size: int, max_kernel_size: int) -> None:
+        super(RandomGaussianBlur, self).__init__()
+        while(True):
+            size = random.randint(min_kernel_size, max_kernel_size)
+            if size%2==1:
+                break
+        self.kernel_size = (size, size)        
+        if isinstance(max_sigma, (float, int)):
+            self.sigma = random.uniform(0.0, max_sigma)
 
-# class RandomBrightness():
-#     def __init__(self, max_delta: float, seed: int = None) -> None:
-#         self.max_delta = max_delta
-#         self.seed = seed
-    
-#     def call(self, x: Tensor):
-#         return tf.image.random_brightness(x, self.max_delta, self.seed)
-             
-# class RandomGaussianBlur(BaseImageAugmentationLayer):
-#     def __init__(self, max_sigma: float, min_kernel_size: int, max_kernel_size: int) -> None:
-#         super(RandomGaussianBlur, self).__init__()
-#         while(True):
-#             size = random.randint(min_kernel_size, max_kernel_size)
-#             if size%2==1:
-#                 break
-#         self.kernel_size = (size, size)        
-#         if isinstance(max_sigma, (float, int)):
-#             self.sigma = random.uniform(0.0, max_sigma)
-
-#     def call(self, image):
-#         blured_image = tfa.image.gaussian_filter2d(image, filter_shape=self.kernel_size, sigma=self.sigma)
-#         return blured_image
+    def call(self, image):
+        blured_image = tfa.image.gaussian_filter2d(image, filter_shape=self.kernel_size, sigma=self.sigma)
+        return blured_image
 
 class Augment(tf.keras.layers.Layer):
     def __init__(self, seed):
@@ -85,9 +75,9 @@ class Augment(tf.keras.layers.Layer):
         model = Sequential()
         model.add(RandomFlip("horizontal", seed=seed))
         if mode=='image':
-            #model.add(RandomBrightness(0.1, seed=seed)) #This layer is only available in tensorflow 2.9
+            model.add(RandomBrightness(0.1, seed=seed))
             model.add(RandomContrast(0.2, seed=seed))
-            #model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=11))        
+            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=11))        
         return model
 
 
@@ -95,7 +85,7 @@ class Dataset():
     def __init__(self, num_classes: int, split:str, preprocessing='default', shuffle=True):
         assert split in ['train', 'val', 'test'], 'split must one of: "train", "val", "test".'
         assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value given was {num_classes}'
-        
+
         self.num_classes = num_classes
         self.split = split
         self.preprocessing = preprocessing

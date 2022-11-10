@@ -1,37 +1,24 @@
 # Semantic Segmentation on the Cityscapes Dataset
 
 ## 1. Image parsing and decoding
-- Parse files:
-    - `data_path`
+- Parse files which are under the following directory sctructure
+    - `data_path` : the root folder which the dataset files are in
         - `leftImg8bit_trainvaltest` -> RGB Images
             - `leftImg8bit`
-                - `train` -> train split
-                    - `*`
-                - `val` -> validation split
-                    - `*`
-                - `test` -> test split
-                    - `*`
+                - `train`
+                - `val`
+                - `test`
         - `gtFine_trainvaltest` -> Ground Truth Images
             - `gtFine`
                 - `train`
-                    - `*`
                 - `val`
-                    - `*`
                 - `test`
-                    - `*`
 
-Each of the train,val,test directories contain subdirectories with the name of a city. 
-To use the whole split, `subfolder='all'` must be passed to the `Dataset.create` method
-in order to use all the subfolders.
-If you want to test with a smaller number of images you can enter `subfolder='<CityName>'`
-for each individual split. For example, `split='train'`, and `subfolder='aachen'` will only
-read the 174 images in the folder `aachen` and convert them into a tf.data.Dataset. 
-You can choose either all the subfolders or one of them not an arbitrary combination of them.
-After reading the images(x) and the ground truth images(y), they are combined into a single object (x, y).
-
-(batch_size, height, width, channel)
+Each of the train,val,test directories contain subdirectories with the name of a city. To use a whole split, `subfolder='all'` must be passed to the `Dataset.create()` method in order to read the images from the subfolders. For testing purposes a smaller number of images from the dataset can be used by passing `subfolder='<CityName>'` to the `create` method of the Dataset object. For example, passing `split='train'` to the Dataset constructor, and `subfolder='aachen'` to the `create` method will only read the 174 images in the folder `aachen` and convert them into a tf.data.Dataset. You can choose either all the subfolders or one of them not an arbitrary combination of them. After the images (x) and the ground truth images (y) are read and decoded, they are combined into a single object (x, y).
 
 ## 2. Preprocessing :
+Generally images have a shape of `(batch_size, height, width, channels)`
+
 1. Break the image into smaller patches with spatial resolution `(256, 256)`. Every image having a spatial resolution of `(1024, 2048)` produces 32 patches and all the patches belong to a batch. This means that when the patching technique is used the batch size is fixed to 32. After this operation the images have a shape of `(32, 256, 256, 3)` while the the ground truth images have a shape of `(32, 256, 256, 1)`. To enable patching set the `use_patches` arguement to `True`.
 
 2. Perform data `Augmentation`
@@ -44,7 +31,7 @@ After reading the images(x) and the ground truth images(y), they are combined in
 
 3. Normalize images : 
    - `[-1, 1]` as default
-   - If using a pretrained backbone normalize according to what the pretrained network expects
+   - If using a pretrained backbone normalize according to what the pretrained network expects at its input. The type of preprocessing is determined by the . To determine what type of preprocessing will be done to the images, the name of the pretrained network must be passed as the `preprocessing` arguement of the Dataset constructor. For example, if a version of the EfficientNet (i.e EfficientNetB0, EfficientNetB1, etc) network is used as a model backbone, then `preprocessing = "EfficientNet"` must be passed.
 
 4. Preprocess ground truth images:
    - Map eval ids to train ids
@@ -55,7 +42,7 @@ After reading the images(x) and the ground truth images(y), they are combined in
 
 ***
 
-Supported backbone choices:
+Supported Network families as backbone choices:
 - EfficientNet
 - EfficientNetV2
 - ResNet
