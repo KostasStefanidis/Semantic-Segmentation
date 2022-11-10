@@ -29,9 +29,9 @@ read the 174 images in the folder `aachen` and convert them into a tf.data.Datas
 You can choose either all the subfolders or one of them not an arbitrary combination of them.
 After reading the images(x) and the ground truth images(y), they are combined into a single object (x, y).
 
-    (batch_size, height, width, channel)
+(batch_size, height, width, channel)
 
-## 2. Preprocessing pipeline :
+## 2. Preprocessing :
 1. Break the image into smaller patches with spatial resolution `(256, 256)`. Every image having a spatial resolution of `(1024, 2048)` produces 32 patches and all the patches belong to a batch. This means that when the patching technique is used the batch size is fixed to 32. After this operation the images have a shape of `(32, 256, 256, 3)` while the the ground truth images have a shape of `(32, 256, 256, 1)`. To enable patching set the `use_patches` arguement to `True`.
 
 2. Perform data `Augmentation`
@@ -51,7 +51,7 @@ After reading the images(x) and the ground truth images(y), they are combined in
    - Convert to `one-hot` encoding
    - After this operation ground truth have a shape of `(batch_size, 1024, 2048, num_classes)`
   
-  Finally the dataset which is created is of shape (image, ground_truth) : (`(batch_size, height, width, 3)`, `(batch_size, height, width, num_classes)`)
+  Finally the dataset which is created is comprised by elements (image, ground_truth) with shape (`(batch_size, height, width, 3)`, `(batch_size, height, width, num_classes)`)
 
 ***
 

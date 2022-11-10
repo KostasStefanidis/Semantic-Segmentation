@@ -174,7 +174,7 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
         X_skip.append(backbone_.get_layer(layer_names[i]).output)
         
     backbone = Model(inputs=input_tensor, outputs=X_skip, name=f'{backbone_name}_backbone')
-        
+    
     if freeze_backbone:
         backbone.trainable = False
     elif unfreeze_at is not None:
