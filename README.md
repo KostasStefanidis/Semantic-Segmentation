@@ -51,7 +51,7 @@ After reading the images(x) and the ground truth images(y), they are combined in
    - Convert to `one-hot` encoding
    - After this operation ground truth have a shape of `(batch_size, 1024, 2048, num_classes)`
   
-  Finally the dataset which is created is comprised by elements (image, ground_truth) with shape (`(batch_size, height, width, 3)`, `(batch_size, height, width, num_classes)`)
+  Finally the dataset which is created is comprised by elements `(image, ground_truth)` with shape (`(batch_size, height, width, 3)`, `(batch_size, height, width, num_classes)`)
 
 ***
 
