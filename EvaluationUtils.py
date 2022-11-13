@@ -3,7 +3,6 @@ import tensorflow as tf
 from keras.metrics import Metric # for tf 2.7
 from keras import backend
 import numpy as np
-from keras.losses import Loss
 
 class MeanIoU(Metric):
     def __init__(self,

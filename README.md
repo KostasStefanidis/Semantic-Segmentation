@@ -19,7 +19,7 @@ Each of the train,val,test directories contain subdirectories with the name of a
 ## 2. Preprocessing :
 Generally images have a shape of `(batch_size, height, width, channels)`
 
-1. Break the image into smaller patches with spatial resolution `(256, 256)`. Every image having a spatial resolution of `(1024, 2048)` produces 32 patches and all the patches belong to a batch. This means that when the patching technique is used the batch size is fixed to 32. After this operation the images have a shape of `(32, 256, 256, 3)` while the the ground truth images have a shape of `(32, 256, 256, 1)`. To enable patching set the `use_patches` arguement to `True`.
+1. Split the image into smaller patches with spatial resolution `(256, 256)`. Every image having a spatial resolution of `(1024, 2048)` produces 32 patches and all the patches belong to a batch. This means that when the patching technique is used the batch size is fixed to 32. After this operation the images have a shape of `(32, 256, 256, 3)` while the the ground truth images have a shape of `(32, 256, 256, 1)`. To enable patching set the `use_patches` arguement to `True`.
 
 2. Perform data `Augmentation`
    - Randomly perform `horrizontal flipping` of images

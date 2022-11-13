@@ -1,6 +1,5 @@
 import tensorflow as tf
 from keras.models import Sequential
-from keras import backend as K
 from tensorflow import Tensor
 import random
 from keras.layers import RandomFlip, RandomBrightness, RandomContrast
@@ -83,13 +82,25 @@ class Augment(tf.keras.layers.Layer):
 
 class Dataset():
     def __init__(self, num_classes: int, split:str, preprocessing='default', shuffle=True):
-        assert split in ['train', 'val', 'test'], 'split must one of: "train", "val", "test".'
-        assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value given was {num_classes}'
+        """ 
 
+        Args:
+            - `num_classes` (int): Number of classes.
+            - `split` (str): The split of the dataset to be used. Must be one of `"train"`, `"val"` or `"test"`.
+            - `preprocessing` (str, optional): A string denoting the what type of preprocessing will be done to the images of the dataset. Defaults to `'default'`.
+            - `shuffle` (bool, optional): Whether or not to shuffle the elements of the dataset. Defaults to True.
+        """
+        
+        assert split in ['train', 'val', 'test'], f'The split arguement must one of: "train", "val", "test", instead the value passed was {split}'
+        assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value passed was {num_classes}'
+        assert preprocessing in ['default', 'ResNet', 'EfficientNet', 'EfficientNetV2'], \
+            f'The preprocessing arguement must one of: "default", "ResNet", "EfficientNet", "EfficientNetV2", instead the value passed was {preprocessing}'
+        
         self.num_classes = num_classes
         self.split = split
         self.preprocessing = preprocessing
         self.shuffle = shuffle
+        
         self.ignore_ids = [-1,0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
         self.eval_ids =   [7,8,11,12,13,17,19,20,21,22,23,24,25,26,27,28,31,32,33]
         self.train_ids =  [0,1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18]
@@ -167,7 +178,7 @@ class Dataset():
         return images, labels
     
     
-    def preprocess_image(self, image:tf.Tensor):
+    def preprocess_image(self, image: Tensor):
         # Layer for normalizing input image
         normalization_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
         preprocessing_options = {
@@ -180,7 +191,7 @@ class Dataset():
         return preprocess_input(image)
     
     
-    def preprocess_label(self, label:tf.Tensor):
+    def preprocess_label(self, label: Tensor):
         label = tf.cast(tf.squeeze(label), tf.int32)
         
         # Map eval ids to train ids
@@ -191,7 +202,7 @@ class Dataset():
                 label = tf.where(label==eval_id, train_id, label)
             label = tf.where(label==34, 19, label)
 
-        label = tf.one_hot(label, self.num_classes, dtype=tf.uint8, name='ground_truth')
+        label = tf.one_hot(label, self.num_classes, dtype=tf.uint8)
         return label
 
     
@@ -232,11 +243,20 @@ class Dataset():
                use_patches: bool = False,
                augment: bool = False,
                seed = 42):
-        '''
-        Takes as input the file paths of images and labels and the number of classes in the given problem
-        and returns a tf.data.Dataset object. Preprocessing includes normalization [-1, 1] of the images and the 
-        one-hot encoding of the labels.
-        '''
+        """ Create a dataset generator. The pre-processing pipeline consists of 1) optionally splitting each image to smaller patches, 2) optionally augmenting each image
+        3) normalizing the input images and 4) optionally map the eval ids of the ground truth images to train ids and convert them to one-hot.
+
+        Args:
+            - `data_path` (str): The relative or absolute path of the directory containing the dataset folders. Both `leftImg8bit_trainvaltest` and `gtFine_trainvaltest` must be in the same directory.
+            - `subfolder` (str, optional): The subfolder to read images from. Defaults to 'all'.
+            - `batch_size` (int, optional): The size of each batch of images. Essentially how many images will be processed and will propagate through the network at the same time. Defaults to 1.
+            - `use_patches` (bool, optional): Whether or not to split the images into smaller patches. Patch size is fixed to (256, 256). When Defaults to False.
+            - `augment` (bool, optional): Whether to use data augmentation or not. Defaults to False.
+            - `seed` (int, optional): The seed used for the shuffling of the dataset elements. The same seed is used in the random transformations during augmentation. Defaults to 42.
+
+        Returns:
+            tf.data.Dataset: _description_
+        """
         if use_patches:
             batch = False
         else:
