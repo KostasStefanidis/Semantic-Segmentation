@@ -85,9 +85,10 @@ class Dataset():
         """ 
 
         Args:
-            - `num_classes` (int): Number of classes.
+            - `num_classes` (int): Number of classes. Available options: 20 or 34.
             - `split` (str): The split of the dataset to be used. Must be one of `"train"`, `"val"` or `"test"`.
-            - `preprocessing` (str, optional): A string denoting the what type of preprocessing will be done to the images of the dataset. Defaults to `'default'`.
+            - `preprocessing` (str, optional): A string denoting the what type of preprocessing will be done to the images of the dataset.
+               Available options: `"default"`, `"ResNet"`, `"EfficientNet"`, `"EfficientNetV2"`. Defaults to `'default'`.
             - `shuffle` (bool, optional): Whether or not to shuffle the elements of the dataset. Defaults to True.
         """
         
@@ -255,7 +256,7 @@ class Dataset():
             - `seed` (int, optional): The seed used for the shuffling of the dataset elements. The same seed is used in the random transformations during augmentation. Defaults to 42.
 
         Returns:
-            tf.data.Dataset: _description_
+            tf.data.Dataset
         """
         if use_patches:
             batch = False
