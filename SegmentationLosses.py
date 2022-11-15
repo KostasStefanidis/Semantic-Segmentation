@@ -8,7 +8,6 @@ def focal_crossentropy(y_true, y_pred, gamma=2):
         ce_loss = categorical_crossentropy(y_true, y_pred, axis=-1)
         if gamma==0:
             return tf.reduce_mean(ce_loss, axis=[1,2])
-        #at = self.alpha.gather(0, targets.data.view(-1))
         pt = tf.exp(-ce_loss)
         focal_loss = tf.pow(1 - pt, gamma) * ce_loss
         return tf.reduce_mean(focal_loss, axis=[1,2])
@@ -32,11 +31,11 @@ class FocalTverskyLoss(Loss):
 
 
     def call(self, y_true, y_pred):
-        ''' Tensor must be in shape : `[batch_size, height, width, num_classes]`.
-        Calculate the sum over the spatial dimensions height and width 
-        -> `[batch_size, num_clasees]` then take the mean along the channel axis (last axis)
+        ''' Tensor must have a shape of : `[batch_size, height, width, num_classes]`.
+        Calculate the score over the spatial dimensions height and width and subtract it from 1.
+        -> `[batch_size, num_classes]` then take the mean along the channel axis (last axis)
         
-        Averaging over batch is done automatically by tensorflow.
+        Averaging over the batch dimension is done automatically by tensorflow.
         '''
         intersection = tf.reduce_sum(y_pred * y_true, axis=[1,2])
         false_positives = tf.reduce_sum((1 - y_true) * y_pred, axis=[1,2])
@@ -101,8 +100,7 @@ class HybridLoss(DiceLoss):
         super().__init__(class_weights=class_weights)
 
     def call(self, y_true, y_pred):
-        # focal crossentropy with gamma=0 -> normal crossentropy
-        return super().call(y_true, y_pred) + focal_crossentropy(y_true, y_pred, gamma=0)
+        return super().call(y_true, y_pred) + tf.reduce_mean(categorical_crossentropy(y_true, y_pred), axis=[1,2])
 
 
 class FocalHybridLoss(FocalTverskyLoss):
@@ -111,7 +109,3 @@ class FocalHybridLoss(FocalTverskyLoss):
 
     def call(self, y_true, y_pred):
         return super().call(y_true, y_pred) + focal_crossentropy(y_true, y_pred)
-
-
-class RMILoss(Loss):
-    pass
