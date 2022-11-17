@@ -1,9 +1,19 @@
 FROM tensorflow/tensorflow:latest
 #tensorflow/tensorflow:2.10.1-gpu
 
-RUN apt install sudo -y
+ARG USERNAME=kstef
 
-RUN useradd -m -G sudo -s /bin/bash kstef
+RUN apt install sudo
+
+RUN useradd -m -G sudo -s /bin/bash $USERNAME
+
+RUN mkdir -p /home/$USERNAME/.vscode-server/extensions \
+        /home/$USERNAME/.vscode-server-insiders/extensions \
+    && chown -R $USERNAME \
+        /home/$USERNAME/.vscode-server \
+        /home/$USERNAME/.vscode-server-insiders
+
+RUN apt install sudo -y
 
 RUN pip install --upgrade pip \
 && pip install ipython \
