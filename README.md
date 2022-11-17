@@ -1,6 +1,6 @@
 # Semantic Segmentation on the Cityscapes Dataset
 
-## 1. Image parsing and decoding
+## 1. File parsing and decoding
 - Parse files which are under the following directory sctructure
     - `data_path` : the root folder which the dataset files are in
         - `leftImg8bit_trainvaltest` -> RGB Images
