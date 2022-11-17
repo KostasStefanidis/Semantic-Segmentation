@@ -17,4 +17,5 @@ RUN apt install git -y \
 && apt install curl -y \
 && apt install wget -y
 
-RUN git config --global user.name 
+RUN git config --global user.name kstef@tf-container \
+&& git config --global user.email kstefanidis48@gmail.com
