@@ -8,9 +8,12 @@ services:
     working_dir: /
     tty: true
     stdin_open: true
-    ports:
-      - 6001:6001
-      - 6002:6002
+    expose:
+      - "6001"
+      - "6002"
+    # ports:
+    #   - 6001:6001
+    #   - 6002:6002
     volumes:
       - /home/kstef/Semantic-Segmentation-Cityscapes:/home/kstef/Semantic-Segmentation-Cityscapes
       - /home/kstef/tf-container-vscode-server-extensions:/home/kstef/.vscode-server/extensions
