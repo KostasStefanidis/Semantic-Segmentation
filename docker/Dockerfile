@@ -17,12 +17,12 @@ RUN pip install --upgrade pip \
 && pip install ipython \
 && pip install ipykernel \
 && pip install pydot \
-&& apt install graphviz -y
+&& apt-get install graphviz -y
 
 RUN apt-get install git -y \
 && apt-get install zip -y \
 && apt-get install unzip -y \
 && apt-get install wget -y
 
-RUN git config --global user.name kstef@tf-container \
+RUN git config --global user.name $USERNAME@tf-container \
 && git config --global user.email kstefanidis48@gmail.com
