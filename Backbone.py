@@ -2,16 +2,16 @@ import os
 import numpy as np
 import tensorflow as tf
 from keras.callbacks import ModelCheckpoint, TensorBoard, CSVLogger
-from tensorflow.keras.optimizers import Adam, SGD
+from keras.optimizers import Adam, SGD
 from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
-from tensorflow.keras import mixed_precision
+from keras import mixed_precision
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
 from DatasetUtils import Dataset
 from EvaluationUtils import MeanIoU
 from SegmentationModels import Residual_Unet, DeepLabV3plus
 from tensorflow_addons.optimizers import CyclicalLearningRate
 from argparse import ArgumentParser
-from tensorflow.keras.optimizers.schedules import PolynomialDecay
+from keras.optimizers.schedules import PolynomialDecay
 
 parser = ArgumentParser('')
 parser.add_argument('-t', type=str, nargs='?', required=True)

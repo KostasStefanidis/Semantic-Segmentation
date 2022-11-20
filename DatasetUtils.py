@@ -82,13 +82,18 @@ class Augment(tf.keras.layers.Layer):
 
 class Dataset():
     def __init__(self, num_classes: int, split:str, preprocessing='default', shuffle=True):
-        """ 
-
+        """
+        Instantiate a Dataset object. Next call the `create()` method to create a pipeline that contains 
+        parsing, decoding and preprossecing of the dataset images which yields, image and ground truth image
+        pairs to feed into the network for either training, evalution or inference.
+        
+        
         Args:
             - `num_classes` (int): Number of classes. Available options: 20 or 34.
             - `split` (str): The split of the dataset to be used. Must be one of `"train"`, `"val"` or `"test"`.
             - `preprocessing` (str, optional): A string denoting the what type of preprocessing will be done to the images of the dataset.
-               Available options: `"default"`, `"ResNet"`, `"EfficientNet"`, `"EfficientNetV2"`. Defaults to `'default'`.
+               Available options: `"default"`, `"ResNet"`, `"EfficientNet"`, `"EfficientNetV2"`. Defaults to `'default'` 
+               -> Normalize the pixel values to [-1, 1] interval.
             - `shuffle` (bool, optional): Whether or not to shuffle the elements of the dataset. Defaults to True.
         """
         
@@ -248,12 +253,16 @@ class Dataset():
         3) normalizing the input images and 4) optionally map the eval ids of the ground truth images to train ids and convert them to one-hot.
 
         Args:
-            - `data_path` (str): The relative or absolute path of the directory containing the dataset folders. Both `leftImg8bit_trainvaltest` and `gtFine_trainvaltest` must be in the same directory.
+            - `data_path` (str): The relative or absolute path of the directory containing the dataset folders. 
+            Both `leftImg8bit_trainvaltest` and `gtFine_trainvaltest` directories must be in the `data_path` parent directory.
             - `subfolder` (str, optional): The subfolder to read images from. Defaults to 'all'.
-            - `batch_size` (int, optional): The size of each batch of images. Essentially how many images will be processed and will propagate through the network at the same time. Defaults to 1.
-            - `use_patches` (bool, optional): Whether or not to split the images into smaller patches. Patch size is fixed to (256, 256). When Defaults to False.
+            - `batch_size` (int, optional): The size of each batch of images. Essentially how many images will 
+            be processed and will propagate through the network at the same time. Defaults to 1.
+            - `use_patches` (bool, optional): Whether or not to split the images into smaller patches. 
+            Patch size is fixed to (256, 256) and the batch size is fixed to 32. When Defaults to False.
             - `augment` (bool, optional): Whether to use data augmentation or not. Defaults to False.
-            - `seed` (int, optional): The seed used for the shuffling of the dataset elements. The same seed is used in the random transformations during augmentation. Defaults to 42.
+            - `seed` (int, optional): The seed used for the shuffling of the dataset elements.
+            This value will also be used as a seed for the random transformations during augmentation. Defaults to 42.
 
         Returns:
             tf.data.Dataset
