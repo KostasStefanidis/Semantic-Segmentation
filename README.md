@@ -2,20 +2,20 @@
 
 ## Dataset Utilities
 ### 1. File parsing and decoding
-- Parse files which are under the following directory sctructure
-    - *data_path* : the root directory where the dataset is located
-        - *leftImg8bit_trainvaltest* -> RGB Images
-            - *leftImg8bit*
-                - *train*
-                - *val*
-                - *test*
-        - *gtFine_trainvaltest* -> Ground Truth Images
-            - *gtFine*
-                - *train*
-                - *val*
-                - *test*
+Parse files which are under the following directory sctructure
+- ***data_path*** : the root directory where the dataset is located
+    - *leftImg8bit_trainvaltest* -> RGB Images
+        - *leftImg8bit*
+            - *train*
+            - *val*
+            - *test*
+    - *gtFine_trainvaltest* -> Ground Truth Images
+        - *gtFine*
+            - *train*
+            - *val*
+            - *test*
 
-Each of the train,val,test directories contain subdirectories with the name of a city. To use a whole split, *`subfolder='all'`* must be passed to the *`Dataset.create()`* method in order to read the images from all the subfolders. For testing purposes a smaller number of images from the dataset can be used by passing `*subfolder='CityName'*` to `create()`. For example, passing *`split='train'`* to the Dataset constructor, and *`subfolder='aachen'`* to the *`create()`* method will make the Dataset object only read the 174 images in the folder aachen and convert them into a *tf.data.Dataset*. You can choose either all the subfolders or one of them, but not an arbitrary combination of them. After the images `(x)` and the ground truth images `(y)` are read and decoded, they are combined into a single object `(x, y)`.
+Each of the train,val,test directories contain subdirectories with the name of a city. To use a whole split, *`subfolder='all'`* must be passed to the *`Dataset.create()`* method in order to read the images from all the subfolders. For testing purposes a smaller number of images from the dataset can be used by passing `*subfolder='<CityName>'*` to *`create()`*. For example, passing *`split='train'`* to the Dataset constructor, and *`subfolder='aachen'`* to the *`create()`* method will make the Dataset object only read the 174 images in the folder aachen and convert them into a *tf.data.Dataset*. You can choose either all the subfolders or one of them, but not an arbitrary combination of them. After the images `(x)` and the ground truth images `(y)` are read and decoded, they are combined into a single object `(x, y)`.
 
 ### 2. Preprocessing :
 Generally images have a shape of `(batch_size, height, width, channels)`
@@ -31,7 +31,7 @@ Generally images have a shape of `(batch_size, height, width, channels)`
 *NOTE : while all augmentations are performed on the images, only horrizontal flip is performed on the ground truth images, because changing the pixel values of the ground truth images means changing the class they belong to.*
 
 3. Normalize images : 
-   - `[-1, 1]` interval as default
+   - The input pixels values are scaled between **-1** and **1** as default
    - If using a pretrained backbone normalize according to what the pretrained network expects at its input. To determine what type of preprocessing will be done to the images, the name of the pretrained network must be passed as the `preprocessing` arguement of the Dataset constructor. For example, if a model from the EfficientNet model family (i.e EfficientNetB0, EfficientNetB1, etc) is used as a backbone, then `preprocessing = "EfficientNet"` must be passed.
 
 4. Preprocess ground truth images:
