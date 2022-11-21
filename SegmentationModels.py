@@ -185,6 +185,111 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
     return backbone
 
 
+def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dropout_type, dropout_rate, kernel_initializer):
+    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(input)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation(activation)(x1)
+    x1 = dropout_layer(x1, dropout_type, dropout_rate)
+    
+    x2 = Conv2D(filters, kernel_size=3, dilation_rate=6, padding='same', kernel_initializer=kernel_initializer)(input)
+    x2 = BatchNormalization()(x2)
+    x2 = Activation(activation)(x2)
+    x2 = dropout_layer(x2, dropout_type, dropout_rate)
+    
+    x3 = Conv2D(filters, kernel_size=3, dilation_rate=12, padding='same', kernel_initializer=kernel_initializer)(input)
+    x3 = BatchNormalization()(x3)
+    x3 = Activation(activation)(x3)
+    x3 = dropout_layer(x3, dropout_type, dropout_rate)
+    
+    x4 = Conv2D(filters, kernel_size=3, dilation_rate=18, padding='same', kernel_initializer=kernel_initializer)(input)
+    x4 = BatchNormalization()(x4)
+    x4 = Activation(activation)(x4)
+    x4 = dropout_layer(x4, dropout_type, dropout_rate)
+    
+    x = Concatenate()([x1,x2,x3,x4])
+    return x
+
+
+def DeepLabV3plus(input_shape: tuple,
+                  filters: tuple,
+                  num_classes: int,
+                  activation: str = 'relu', 
+                  dropout_rate = 0.0,
+                  dropout_type = 'normal',
+                  backbone_name = None,
+                  freeze_backbone = True,
+                  unfreeze_at = None,
+                  kernel_initializer = HeNormal()
+                  ):
+    
+    """
+    Instantiate a DeepLabV3+ model.
+
+    Args:
+        - `input_shape` (tuple): The shape of the input images.
+        - `filters`(list, tuple): A list or tuple containing the number of filters that Convolution layers will have in each stage of the network.
+            The length of the filters determines how many stages the network will have.
+        - `num_classes` (int): The number of classes to segment the images to. The final Convolution layer has `num_classes` number of filters
+            and followed by a softmax activation, the network produces a probability vector for each pixel, that represents the probabilities 
+            for the given pixel to belong to each class.
+        - `activation` (str, optional): The activation function to be used throughout the network. Defaults to 'relu'.
+        - `dropout_rate` (float, optional): The dropout rate used in the dropout layers. Defaults to 0.0.
+        - `dropout_type` (str, optional): The type of dropout layers to be used. Options are 'normal' and 'spatial'. Defaults to 'normal'.
+        - `backbone_name` (str, optional): The name of the pre-trained backbone. Set to None to use a conventional U-net. Defaults to None.
+        - `freeze_backbone` (bool, optional): Whether to freeze the backbone or not. Freezing the backbone means that the the weights of the encoder
+            will not get updated during training and only the decoder will be trained. Defaults to True.
+        - `unfreeze_at` (str, optional): The name of the layer at which to unfreeze the backbone at. The backbone will be frozen from the first layer
+            to the `unfreeze_at` while all the layers after that will be unfrozen and updated during training. For this take effect set 
+            `freeze_backbone=False` Defaults to None.
+        - `kernel_initializer` (optional): The kernel initializer for the Convolution layers. Defaults to HeNormal().
+
+    Returns:
+        tf.keras.Model: A keras Model with the DeepLabV3+ architecture.
+        
+    References:
+        - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611)
+    """
+    
+    depth = len(filters)
+    
+    x0 = tf.keras.Input(shape=input_shape)
+    
+    backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+    Skip = backbone(x0, training=False)
+ 
+    # Bottleneck
+    x = Skip[-1]
+    
+    low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(Skip[2])
+    
+    x = spatial_pyramid_pooling(x, 256, activation, dropout_type, dropout_rate, kernel_initializer)
+    
+    # 1x1 mapping of the spatial_pyramid features
+    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=kernel_initializer)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    x = dropout_layer(x, dropout_type, dropout_rate)
+    
+    # Decoder
+    x = UpSampling2D(size=4, interpolation='bilinear')(x)
+    x = Concatenate(axis=-1)([x, low_level_features])
+    
+    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    x = dropout_layer(x, dropout_type, dropout_rate)
+    
+    x = UpSampling2D(size=8, interpolation='bilinear')(x)
+
+    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x)
+    output = Activation('softmax', name='output', dtype='float32')(output)
+    model = Model(inputs=x0, outputs=output, name=f'DeepLabV3plus')
+    return model
+
+
 def base_Unet(unet_type: str,
               input_shape: tuple,
               filters: tuple, 
@@ -194,10 +299,10 @@ def base_Unet(unet_type: str,
               dropout_type: str,              
               scale_dropout: bool,
               dropout_offset: float,
+              backbone_name : str,
+              freeze_backbone : bool,
+              unfreeze_at : str,
               kernel_initializer,
-              backbone_name = None,
-              freeze_backbone = True,
-              unfreeze_at = None
               ):
 
     depth = len(filters)
@@ -253,96 +358,51 @@ def base_Unet(unet_type: str,
     model = Model(inputs=x0, outputs=output, name=f'{unet_type}_U-net' if unet_type != 'normal' else 'U-net')
     return model
 
-def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dropout_type, dropout_rate, kernel_initializer):
-    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(input)
-    x1 = BatchNormalization()(x1)
-    x1 = Activation(activation)(x1)
-    x1 = dropout_layer(x1, dropout_type, dropout_rate)
-    
-    x2 = Conv2D(filters, kernel_size=3, dilation_rate=6, padding='same', kernel_initializer=kernel_initializer)(input)
-    x2 = BatchNormalization()(x2)
-    x2 = Activation(activation)(x2)
-    x2 = dropout_layer(x2, dropout_type, dropout_rate)
-    
-    x3 = Conv2D(filters, kernel_size=3, dilation_rate=12, padding='same', kernel_initializer=kernel_initializer)(input)
-    x3 = BatchNormalization()(x3)
-    x3 = Activation(activation)(x3)
-    x3 = dropout_layer(x3, dropout_type, dropout_rate)
-    
-    x4 = Conv2D(filters, kernel_size=3, dilation_rate=18, padding='same', kernel_initializer=kernel_initializer)(input)
-    x4 = BatchNormalization()(x4)
-    x4 = Activation(activation)(x4)
-    x4 = dropout_layer(x4, dropout_type, dropout_rate)
-    
-    x = Concatenate()([x1,x2,x3,x4])
-    return x
-
-
-def DeepLabV3plus(input_shape: tuple,
-                  filters: tuple,
-                  num_classes: int,
-                  activation: str,
-                  dropout_type = 'normal', 
-                  dropout_rate = 0.0,
-                  kernel_initializer = HeNormal(42),
-                  backbone_name = None,
-                  freeze_backbone = True,
-                  unfreeze_at = None):
-    
-    depth = len(filters)
-    
-    x0 = tf.keras.Input(shape=input_shape)
-    
-    backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
-    Skip = backbone(x0, training=False)
- 
-    # Bottleneck
-    x = Skip[-1]
-    
-    low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=kernel_initializer)(Skip[2])
-    
-    x = spatial_pyramid_pooling(x, 256, activation, dropout_type, dropout_rate, kernel_initializer)
-    
-    # 1x1 mapping of the spatial_pyramid features
-    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=kernel_initializer)(x)
-    x = BatchNormalization()(x)
-    x = Activation(activation)(x)
-    x = dropout_layer(x, dropout_type, dropout_rate)
-    
-    # Decoder
-    x = UpSampling2D(size=4, interpolation='bilinear')(x)
-    x = Concatenate(axis=-1)([x, low_level_features])
-    
-    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(x)
-    x = BatchNormalization()(x)
-    x = Activation(activation)(x)
-    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(x)
-    x = BatchNormalization()(x)
-    x = Activation(activation)(x)
-    x = dropout_layer(x, dropout_type, dropout_rate)
-    
-    x = UpSampling2D(size=8, interpolation='bilinear')(x)
-
-    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x)
-    output = Activation('softmax', name='output', dtype='float32')(output)
-    model = Model(inputs=x0, outputs=output, name=f'DeepLabV3plus')
-    return model
-
-
+              
 def Unet(input_shape: tuple,
          filters: tuple, 
          num_classes: int,
-         dropout_rate: float,
-         activation: str,
+         activation: str = 'relu',
+         dropout_rate: float = 0.0,
          dropout_type = 'normal',
          scale_dropout = False,
          dropout_offset = 0.01,
-         kernel_initializer = HeNormal(42),
          backbone_name = None,
-         freeze_backbone= True,
-         unfreeze_at = None
+         freeze_backbone = True,
+         unfreeze_at = None,
+         kernel_initializer = HeNormal()
          ):
+    
+    """
+    Instantiate a U-net model.
 
+    Args:
+        - `input_shape` (tuple): The shape of the input images.
+        - `filters`(list, tuple): A list or tuple containing the number of filters that Convolution layers will have in each stage of the network.
+            The length of the filters determines how many stages the network will have.
+        - `num_classes` (int): The number of classes to segment the images to. The final Convolution layer has `num_classes` number of filters
+            and followed by a softmax activation, the network produces a probability vector for each pixel, that represents the probabilities 
+            for the given pixel to belong to each class.
+        - `activation` (str, optional): The activation function to be used throughout the network. Defaults to 'relu'.
+        - `dropout_rate` (float, optional): The dropout rate used in the dropout layers. Defaults to 0.0.
+        - `dropout_type` (str, optional): The type of dropout layers to be used. Options are 'normal' and 'spatial'. Defaults to 'normal'.
+        - `scale_dropout` (bool, optional): Whether to increase the dropout rate the deeper the network goes.
+        - `dropout_offset` (float, optional): The amount by which to increase the dropout rate for every stage of the network. Defaults to 0.01.
+        - `backbone_name` (str, optional): The name of the pre-trained backbone. Set to None to use a conventional U-net. Defaults to None.
+        - `freeze_backbone` (bool, optional): Whether to freeze the backbone or not. Freezing the backbone means that the the weights of the encoder
+            will not get updated during training and only the decoder will be trained. Defaults to True.
+        - `unfreeze_at` (str, optional): The name of the layer at which to unfreeze the backbone at. The backbone will be frozen from the first layer
+            to the `unfreeze_at` while all the layers after that will be unfrozen and updated during training. For this take effect set 
+            `freeze_backbone=False` Defaults to None.
+        - `kernel_initializer` (optional): The kernel initializer for the Convolution layers. Defaults to HeNormal().
+
+    Returns:
+        tf.keras.Model: A keras Model with the U-net architecture.
+        
+    References:
+        - [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
+    """
+    
     return  base_Unet('normal', 
                       input_shape, 
                       filters, 
@@ -352,25 +412,55 @@ def Unet(input_shape: tuple,
                       dropout_type, 
                       scale_dropout, 
                       dropout_offset,
-                      kernel_initializer,
-                      backbone_name=backbone_name,
-                      freeze_backbone=freeze_backbone,
-                      unfreeze_at=unfreeze_at)
+                      backbone_name,
+                      freeze_backbone,
+                      unfreeze_at,
+                      kernel_initializer)
 
 
 def Residual_Unet(input_shape: tuple,
                   filters: tuple,
                   num_classes: int,
-                  dropout_rate: float,
-                  activation: str,               
+                  activation: str = 'relu',
+                  dropout_rate: float = 0.0,
                   dropout_type: str = 'normal',
                   scale_dropout: bool = False,
                   dropout_offset: float = 0.01,
-                  kernel_initializer = HeNormal(42),
                   backbone_name = None,
-                  freeze_backbone= True,
-                  unfreeze_at = None
+                  freeze_backbone = True,
+                  unfreeze_at = None,
+                  kernel_initializer = HeNormal()
                   ):
+    """
+    Instantiate a U-net model with a modified basic basic block with residual connections to improve network learning capacity.
+
+    Args:
+        - `input_shape` (tuple): The shape of the input images.
+        - `filters`(list, tuple): A list or tuple containing the number of filters that Convolution layers will have in each stage of the network.
+            The length of the filters determines how many stages the network will have.
+        - `num_classes` (int): The number of classes to segment the images to. The final Convolution layer has `num_classes` number of filters
+            and followed by a softmax activation, the network produces a probability vector for each pixel, that represents the probabilities 
+            for the given pixel to belong to each class.
+        - `activation` (str, optional): The activation function to be used throughout the network. Defaults to 'relu'.
+        - `dropout_rate` (float, optional): The dropout rate used in the dropout layers. Defaults to 0.0.
+        - `dropout_type` (str, optional): The type of dropout layers to be used. Options are 'normal' and 'spatial'. Defaults to 'normal'.
+        - `scale_dropout` (bool, optional): Whether to increase the dropout rate the deeper the network goes. Defaults to False.
+        - `dropout_offset` (float, optional): The amount by which to increase the dropout rate for every stage of the network. Defaults to 0.01.
+        - `backbone_name` (str, optional): The name of the pre-trained backbone. Set to None to instantiate a conventional U-net. Defaults to None.
+        - `freeze_backbone` (bool, optional): Whether to freeze the backbone or not. Freezing the backbone means that the the weights of the encoder
+            will not get updated during training and only the decoder will be trained. Defaults to True.
+        - `unfreeze_at` (str, optional): The name of the layer at which to unfreeze the backbone at. The backbone will be frozen from the first layer
+            to the `unfreeze_at` while all the layers after that will be unfrozen and updated during training. For this take effect set 
+            `freeze_backbone=False` Defaults to None.
+        - `kernel_initializer` (optional): The kernel initializer for the Convolution layers. Defaults to HeNormal().
+
+    Returns:
+        tf.keras.Model: A keras Model with the U-net architecture.
+        
+    References:
+        - [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
+        - [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
+    """
     
     return  base_Unet('residual', 
                       input_shape, 
@@ -388,18 +478,51 @@ def Residual_Unet(input_shape: tuple,
 
 
 def Attention_Unet(input_shape: tuple,
-                   filters: tuple, 
-                   num_classes: int, 
-                   dropout_rate: float,
-                   activation: str,
+                   filters: tuple,
+                   num_classes: int,
+                   activation: str = 'relu',
+                   dropout_rate: float = 0.0,
                    dropout_type: str = 'normal',
                    scale_dropout: bool = False,
                    dropout_offset: float = 0.01,
-                   kernel_initializer = HeNormal(42),
                    backbone_name = None,
-                   freeze_backbone= True,
-                   unfreeze_at = None
+                   freeze_backbone = True,
+                   unfreeze_at = None,
+                   kernel_initializer = HeNormal()
                    ):
+    """
+    Instantiate a U-net model that uses attention modules in each decoder block to improve segmentation results by weighing 
+    with a modified basic basic block with residual connections to improve network learning capacity.
+
+    Args:
+        - `input_shape` (tuple): The shape of the input images.
+        - `filters`(list, tuple): A list or tuple containing the number of filters that Convolution layers will have in each stage of the network.
+            The length of the filters determines how many stages the network will have.
+        - `num_classes` (int): The number of classes to segment the images to. The final Convolution layer has `num_classes` number of filters
+            and followed by a softmax activation, the network produces a probability vector for each pixel, that represents the probabilities 
+            for the given pixel to belong to each class.
+        - `activation` (str, optional): The activation function to be used throughout the network. Defaults to 'relu'.
+        - `dropout_rate` (float, optional): The dropout rate used in the dropout layers. Defaults to 0.0.
+        - `dropout_type` (str, optional): The type of dropout layers to be used. Options are 'normal' and 'spatial'. Defaults to 'normal'.
+        - `scale_dropout` (bool, optional): Whether to increase the dropout rate the deeper the network goes. Defaults to False.
+        - `dropout_offset` (float, optional): The amount by which to increase the dropout rate for every stage of the network. Defaults to 0.01.
+        - `backbone_name` (str, optional): The name of the pre-trained backbone. Set to None to instantiate a conventional U-net. Defaults to None.
+        - `freeze_backbone` (bool, optional): Whether to freeze the backbone or not. Freezing the backbone means that the the weights of the encoder
+            will not get updated during training and only the decoder will be trained. Defaults to True.
+        - `unfreeze_at` (str, optional): The name of the layer at which to unfreeze the backbone at. The backbone will be frozen from the first layer
+            to the `unfreeze_at` while all the layers after that will be unfrozen and updated during training. For this take effect set 
+            `freeze_backbone=False` Defaults to None.
+        - `kernel_initializer` (optional): The kernel initializer for the Convolution layers. Defaults to HeNormal().
+
+    Returns:
+        tf.keras.Model: A keras Model with the U-net architecture.
+        
+        
+    References:
+        - [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
+        - [Attention U-Net: Learning Where to Look for the Pancreas](https://arxiv.org/abs/1804.03999)
+        - [CBAM: Convolutional Block Attention Module](https://arxiv.org/abs/1807.06521)
+    """
     
     return  base_Unet('attention', 
                       input_shape, 
@@ -418,16 +541,47 @@ def Attention_Unet(input_shape: tuple,
 
 def Unet_plus(input_shape: tuple,
               filters: tuple, 
-              num_classes: int, 
-              dropout_rate: float, 
-              dropout_type: str,
-              activation: str,
+              num_classes: int,
+              activation: str = 'relu',
+              dropout_rate: float = 0.0, 
+              dropout_type: str = 'normal',
               scale_dropout: bool = True,
               dropout_offset: float = 0.01,
-              kernel_initializer = HeNormal(42),
               deep_supervision: bool = False,
-              attention: bool = False
+              attention: bool = False,
+              kernel_initializer = HeNormal()
               ):
+    
+    """
+    Instantiate a U-net++ model.
+
+    Args:
+        - `input_shape` (tuple): The shape of the input images.
+        - `filters`(list, tuple): A list or tuple containing the number of filters that Convolution layers will have in each stage of the network.
+            The length of the filters determines how many stages the network will have.
+        - `num_classes` (int): The number of classes to segment the images to. The final Convolution layer has `num_classes` number of filters
+            and followed by a softmax activation, the network produces a probability vector for each pixel, that represents the probabilities 
+            for the given pixel to belong to each class.
+        - `activation` (str, optional): The activation function to be used throughout the network. Defaults to 'relu'.
+        - `dropout_rate` (float, optional): The dropout rate used in the dropout layers. Defaults to 0.0.
+        - `dropout_type` (str, optional): The type of dropout layers to be used. Options are 'normal' and 'spatial'. Defaults to 'normal'.
+        - `scale_dropout` (bool, optional): Whether to scale the dropout rate the deeper the network goes. The dropout rate is increased by 
+            `dropout_offset` for every stage of the network. Defaults to False.
+        - `dropout_offset` (float, optional): The amount by which to increase the dropout rate for every stage of the network. Defaults to 0.01.
+        - `deep_supervision` (bool, optional): Whether to use deep supervision. Deep supervision may produce better results and it enables model 
+            pruning. Defaults to False.
+        - `attention` (bool, optional): Whether to use attention modules. Defaults to False.
+        - `kernel_initializer` (, optional): The kernel initializer for the Convolution layers. Defaults to HeNormal().
+        
+
+    Returns:
+        tf.keras.Model: A keras Model with the U-net++ architecture.
+        
+        
+    References:
+        - [UNet++: A Nested U-Net Architecture for Medical Image Segmentation](https://arxiv.org/abs/1807.10165)
+    """
+    
     
     depth = len(filters)
     
@@ -499,7 +653,7 @@ def Unet_plus(input_shape: tuple,
         model = Model(inputs=x0_0, outputs=[output_1,
                                             output_2,
                                             output_3,
-                                            output_4] , name='Unet_2plus')
+                                            output_4] , name='Unet')
     else:
         model = Model(inputs=x0_0, outputs=output_4, name='Unet_2plus')
     
@@ -514,7 +668,7 @@ def Unet_3plus(input_shape: tuple,
                activation: str,
                scale_dropout = True,
                dropout_offset = 0.01,
-               kernel_initializer = HeNormal(42),
+               kernel_initializer = HeNormal(),
                attention: bool = False,
                backbone_name: str = None,
                freeze_backbone: bool = True,
