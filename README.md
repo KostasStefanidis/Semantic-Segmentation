@@ -54,8 +54,8 @@ Implemented models :
 Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U-net`, `Attention U-net` and `DeepLabV3+`.
 
 Supported Network families as backbone choices:
-- **EfficientNe`**
-- **EfficientNetV2**
-- **ResNet**
-- **ResNetV2**
-- **DenseNet**
+- **`EfficientNet`**
+- **`EfficientNetV2`**
+- **`ResNet`**
+- **`ResNetV2`**
+- **`DenseNet`**
