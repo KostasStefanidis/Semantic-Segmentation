@@ -13,16 +13,17 @@ RUN mkdir -p /home/$USERNAME/.vscode-server/extensions \
         /home/$USERNAME/.vscode-server \
         /home/$USERNAME/.vscode-server-insiders
 
-RUN pip install --upgrade pip \
-&& pip install ipython \
-&& pip install ipykernel \
-&& pip install pydot \
-&& apt-get install graphviz -y
-
 RUN apt-get install git -y \
 && apt-get install zip -y \
 && apt-get install unzip -y \
 && apt-get install wget -y
+
+RUN pip install --upgrade pip \
+&& pip install ipython \
+&& pip install ipykernel \
+&& pip install tensorflow-addons \
+&& pip install pydot \
+&& apt-get install graphviz -y
 
 RUN git config --global user.name $USERNAME@tf-container \
 && git config --global user.email kstefanidis48@gmail.com
