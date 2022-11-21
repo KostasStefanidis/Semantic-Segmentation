@@ -5,6 +5,8 @@ import random
 from keras.layers import RandomFlip, RandomBrightness, RandomContrast
 import tensorflow_addons as tfa
 from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
+from keras.applications import resnet, resnet_v2, densenet, efficientnet
+from keras.applications import efficientnet_v2
 
 # dictionary that contains the mapping of the class numbers to rgb color values
 color_map =  {0: [0, 0, 0],
@@ -62,12 +64,12 @@ class Augment(tf.keras.layers.Layer):
     def __init__(self, seed):
         super().__init__()
         #both use the same seed, so they'll make the same random changes.
-        self.augment_inputs = self.augment(seed, mode='image')
-        self.augment_labels = self.augment(seed, mode='label')
+        self.augment_images = self.augment(seed, mode='image')
+        self.augment_gt_images = self.augment(seed, mode='label')
 
     def call(self, inputs, labels):
-        inputs = self.augment_inputs(inputs)
-        labels = self.augment_labels(labels)
+        inputs = self.augment_images(inputs)
+        labels = self.augment_gt_images(labels)
         return inputs, labels
     
     def augment(self, seed, mode):
@@ -189,9 +191,11 @@ class Dataset():
         normalization_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
         preprocessing_options = {
             'default': normalization_layer,
-            'ResNet': tf.keras.applications.resnet.preprocess_input, 
-            'EfficientNet' : tf.keras.applications.efficientnet.preprocess_input,
-            'EfficientNetV2' : tf.keras.applications.efficientnet_v2.preprocess_input
+            'ResNet': resnet.preprocess_input,
+            'ResNetV2' : resnet_v2.preprocess_input,
+            'DenseNet': densenet.preprocess_input,
+            'EfficientNet' : efficientnet.preprocess_input,
+            'EfficientNetV2' : efficientnet_v2.preprocess_input
         }
         preprocess_input = preprocessing_options[self.preprocessing]
         return preprocess_input(image)
