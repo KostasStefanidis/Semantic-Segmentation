@@ -212,7 +212,7 @@ class Dataset():
                 label = tf.where(label==eval_id, train_id, label)
             label = tf.where(label==34, 19, label)
 
-        label = tf.one_hot(label, self.num_classes, dtype=tf.uint8)
+        label = tf.one_hot(label, self.num_classes, dtype=tf.float32)
         return label
 
     
