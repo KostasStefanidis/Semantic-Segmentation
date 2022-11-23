@@ -651,7 +651,7 @@ def Unet_plus(input_shape: tuple,
     output_4 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_4)
     output_4 = Activation('softmax', name='output_4', dtype='float32')(output_4)
     
-    Unet_L4 = Model(inputs=x0_0, outputs=output_4, name='Unet_pp_L4')
+    Unet_pp_L4 = Model(inputs=x0_0, outputs=output_4, name='Unet_pp_L4')
     Unet_pp = Model(inputs=x0_0, outputs=[output_1,
                                           output_2,
                                           output_3,
@@ -660,7 +660,7 @@ def Unet_plus(input_shape: tuple,
     if deep_supervision:
         model = Unet_pp
     else:
-        model = Unet_L4
+        model = Unet_pp_L4
     
     return model
 
@@ -679,13 +679,10 @@ class Unet_pp():
               dropout_type: str = 'normal',
               scale_dropout: bool = True,
               dropout_offset: float = 0.01,
-              backbone_name: str = None,
-              freeze_backbone= False,
-              unfreeze_at = None,
               attention: bool = False,
               kernel_initializer = HeNormal(42)):
         
-        self.depth = len(filters) - 1
+        self.depth = len(filters)
         
         self.model = Unet_plus(input_shape,
                                 filters, 
@@ -695,9 +692,6 @@ class Unet_pp():
                                 dropout_type,
                                 scale_dropout,
                                 dropout_offset,
-                                backbone_name,
-                                freeze_backbone,
-                                unfreeze_at,
                                 self.deep_supervision,
                                 attention,
                                 kernel_initializer)
@@ -709,19 +703,12 @@ class Unet_pp():
         self.model = tf.keras.models.load_model(path, compile=False)
     
     
-    def compile(self, loss, optimizer, metrics, loss_weights=1):
-        if isinstance(loss_weights, (int, float)):
-            loss_weights = self.depth * [loss_weights]
-        elif isinstance(loss, (list, tuple)):
-            loss_weights_list = list(loss_weights)        
-            loss_weights = {f'output_{i}' : val for i,val in enumerate(loss_weights_list, start=1)}
-        
+    def compile(self, loss, optimizer, metrics):
         if self.deep_supervision:
             self.model.compile(loss={'output_1': loss,
                                      'output_2': loss,
                                      'output_3': loss,
                                      'output_4': loss},
-                               loss_weights=loss_weights,
                                optimizer=optimizer,
                                metrics=metrics)
         else:
