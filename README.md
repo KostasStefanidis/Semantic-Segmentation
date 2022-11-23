@@ -43,21 +43,31 @@ Generally images have a shape of `(batch_size, height, width, channels)`
 
 ## **Segmentation Models**
 
-Implemented models :
-- **`U-net`**
-- **`Residual U-net`**
-- **`Attention U-net`**
-- **`U-net++`**
-- **`U-net3+`**
-- **`DeepLabV3+`**
+| Models                    | Reference
+| ---------------------     | --------------------
+| **`U-net`**               | [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597) |
+| **`Residual U-net`**      | -
+| **`Attention U-net`**     | [Attention U-Net: Learning Where to Look for the Pancreas](https://arxiv.org/abs/1804.03999) , [CBAM: Convolutional Block Attention Module](https://arxiv.org/abs/1807.06521) |
+| **`U-net++`**             | [UNet++: A Nested U-Net Architecture for Medical Image Segmentation](https://arxiv.org/abs/1807.10165) |
+| **`DeepLabV3+`**          | [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611) |
 
 Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U-net`, `Attention U-net` and `DeepLabV3+`.
 
 ## Supported Network families as backbone choices:
-| Network Family        |  Reference  |
-| -----------           | ----------- |
-| **`EfficientNet`**    | [EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks](https://arxiv.org/abs/1905.11946) |
-| **`EfficientNetV2`**  | [EfficientNetV2: Smaller Models and Faster Training](https://arxiv.org/abs/2104.00298) |
-| **`ResNet`**          | [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385) |
-| **`ResNetV2`**        | [Identity Mappings in Deep Residual Networks](https://arxiv.org/abs/1603.05027) |
-| **`DenseNet`**        | [Densely Connected Convolutional Networks](https://arxiv.org/abs/1608.06993) |
+| Network Family            |  Reference  |
+| -----------               | ----------- |
+| **`EfficientNet`**        | [EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks](https://arxiv.org/abs/1905.11946) |
+| **`EfficientNetV2`**      | [EfficientNetV2: Smaller Models and Faster Training](https://arxiv.org/abs/2104.00298) |
+| **`ResNet`**              | [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385) |
+| **`ResNetV2`**            | [Identity Mappings in Deep Residual Networks](https://arxiv.org/abs/1603.05027) |
+| **`DenseNet`**            | [Densely Connected Convolutional Networks](https://arxiv.org/abs/1608.06993) |
+
+## **Segmentation Losses**
+| Loss                          |  Reference  |
+| -----------                   | ----------- |
+| **`IoU Loss`**                | - |
+| **`Dice Loss`**               | [Generalised Dice overlap as a deep learning loss function for highly unbalanced segmentations](https://arxiv.org/abs/1707.03237) |
+| **`Tversky Loss`**            | [Tversky loss function for image segmentation using 3D fully convolutional deep networks](https://arxiv.org/abs/1706.05721) |
+| **`Focal Tversky`**           | [A Novel Focal Tversky loss function with improved Attention U-Net for lesion segmentation](https://arxiv.org/abs/1810.07842) |
+| **`Hybrid Loss`**             | - |
+| **`Focal Hybrid Loss`**       | - |
