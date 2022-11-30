@@ -22,6 +22,7 @@ RUN pip install --upgrade pip \
 && pip install ipython \
 && pip install ipykernel \
 && pip install tensorflow-addons \
+&& pip install pandas \
 && pip install pydot \
 && apt-get install graphviz -y
 
