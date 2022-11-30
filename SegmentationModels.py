@@ -12,8 +12,11 @@ from keras.layers import BatchNormalization, Activation
 from keras.applications.efficientnet import EfficientNetB0, EfficientNetB1, EfficientNetB2
 from keras.applications.efficientnet import EfficientNetB3, EfficientNetB4, EfficientNetB5
 from keras.applications.efficientnet import EfficientNetB6, EfficientNetB7
+from keras.applications.efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2
+from keras.applications.efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
 from keras.applications.densenet import DenseNet121, DenseNet169, DenseNet201
 from keras.applications.resnet import ResNet50,ResNet101,ResNet152
+from warnings import warn
 
 
 def dropout_layer(input_tensor: Tensor, dropout_type: str, dropout_rate: float) -> Tensor:
@@ -604,18 +607,17 @@ def Unet_plus(input_shape: tuple,
         assert len(dropout_type)==depth, 'dropout_type length does not match model depth. The length of dropout_type needs to match the length of filters if passed as a list or tuple'
     else:
         dropout_type = [dropout_type] * depth
-    
-    
+        
     
     x0_0 = tf.keras.Input(shape=input_shape)
-    
+
     x1_0, skip1_0 = downsampling_block(x0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
     x2_0, skip2_0 = downsampling_block(x1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
     x3_0, skip3_0 = downsampling_block(x2_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
     x4_0, skip4_0 = downsampling_block(x3_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
     
     x4_0 = conv_block(x4_0, filters[4], dropout_rate[4], dropout_type[4], activation, kernel_initializer, unet_type)
-    
+
     x0_1 = upsampling_block(x1_0, skip1_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
     x1_1 = upsampling_block(x2_0, skip2_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
     x2_1 = upsampling_block(x3_0, skip3_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
@@ -649,15 +651,82 @@ def Unet_plus(input_shape: tuple,
     output_4 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_4)
     output_4 = Activation('softmax', name='output_4', dtype='float32')(output_4)
     
+    Unet_pp_L4 = Model(inputs=x0_0, outputs=output_4, name='Unet_pp_L4')
+    Unet_pp = Model(inputs=x0_0, outputs=[output_1,
+                                          output_2,
+                                          output_3,
+                                          output_4] , name='Unet_pp')
+    
     if deep_supervision:
-        model = Model(inputs=x0_0, outputs=[output_1,
-                                            output_2,
-                                            output_3,
-                                            output_4] , name='Unet')
+        model = Unet_pp
     else:
-        model = Model(inputs=x0_0, outputs=output_4, name='Unet_2plus')
+        model = Unet_pp_L4
     
     return model
+
+
+class Unet_pp():
+    def __init__(self, deep_supervision: bool = False) -> None:
+        self.deep_supervision = deep_supervision
+    
+    
+    def build(self,
+              input_shape: tuple,
+              filters: tuple, 
+              num_classes: int,
+              activation: str = 'relu',
+              dropout_rate: float = 0.0, 
+              dropout_type: str = 'normal',
+              scale_dropout: bool = True,
+              dropout_offset: float = 0.01,
+              attention: bool = False,
+              kernel_initializer = HeNormal(42)):
+        
+        self.depth = len(filters)
+        
+        self.model = Unet_plus(input_shape,
+                                filters, 
+                                num_classes,
+                                activation,
+                                dropout_rate, 
+                                dropout_type,
+                                scale_dropout,
+                                dropout_offset,
+                                self.deep_supervision,
+                                attention,
+                                kernel_initializer)
+    
+    
+    def load(self, path:str, load_weights_only=False):
+        if load_weights_only:
+            self.model = self.model.load_weights(path)
+        self.model = tf.keras.models.load_model(path, compile=False)
+    
+    
+    def compile(self, loss, optimizer, metrics):
+        if self.deep_supervision:
+            self.model.compile(loss={'output_1': loss,
+                                     'output_2': loss,
+                                     'output_3': loss,
+                                     'output_4': loss},
+                               optimizer=optimizer,
+                               metrics=metrics)
+        else:
+            self.model.compile(loss=loss, metrics=metrics, optimizer=optimizer)
+    
+    
+    def prune(self, stage):
+        if self.deep_supervision:
+            output_layer_name = f'output_{stage}'
+            output_layer = self.model.get_layer(output_layer_name).output
+            input_layer = self.model.input
+            self.model = Model(inputs=input_layer, outputs=output_layer)
+        else:
+            print("This model was instantiated without Deep supervision enabled so it cannot be pruned! The prunning opperation will be skipped")
+
+
+    def get_model(self):
+        return self.model
 
 
 def Unet_3plus(input_shape: tuple,

@@ -212,7 +212,7 @@ class Dataset():
                 label = tf.where(label==eval_id, train_id, label)
             label = tf.where(label==34, 19, label)
 
-        label = tf.one_hot(label, self.num_classes, dtype=tf.uint8)
+        label = tf.one_hot(label, self.num_classes, dtype=tf.float32)
         return label
 
     
@@ -254,7 +254,7 @@ class Dataset():
                augment: bool = False,
                seed = 42):
         """ Create a dataset generator. The pre-processing pipeline consists of 1) optionally splitting each image to smaller patches, 2) optionally augmenting each image
-        3) normalizing the input images and 4) optionally map the eval ids of the ground truth images to train ids and convert them to one-hot.
+        3) normalizing the input images and 4) optionally map the eval ids of the ground truth images to train ids and finally convert them to one-hot.
 
         Args:
             - `data_path` (str): The relative or absolute path of the directory containing the dataset folders. 
