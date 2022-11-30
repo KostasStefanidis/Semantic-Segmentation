@@ -1,5 +1,9 @@
 # **Semantic Segmentation on the Cityscapes Dataset**
 
+For a detailed overview of the dataset visit the [Cityscapes website](https://www.cityscapes-dataset.com/) and the [Cityscapes Github repository](https://github.com/mcordts/cityscapesScripts) 
+
+This repository focuses solely on the **Pixel-Level Semantic Labeling Task** of the cityscapes dataset.
+
 ## Dataset Utilities
 ### 1. File parsing and decoding
 Parse files which are under the following directory sctructure
@@ -56,18 +60,18 @@ Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U
 ## Supported Network families as backbone choices:
 | Network Family            |  Reference  |
 | -----------               | ----------- |
-| **`EfficientNet`**        | [EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks](https://arxiv.org/abs/1905.11946) |
-| **`EfficientNetV2`**      | [EfficientNetV2: Smaller Models and Faster Training](https://arxiv.org/abs/2104.00298) |
 | **`ResNet`**              | [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385) |
 | **`ResNetV2`**            | [Identity Mappings in Deep Residual Networks](https://arxiv.org/abs/1603.05027) |
+| **`EfficientNet`**        | [EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks](https://arxiv.org/abs/1905.11946) |
+| **`EfficientNetV2`**      | [EfficientNetV2: Smaller Models and Faster Training](https://arxiv.org/abs/2104.00298) |
 | **`DenseNet`**            | [Densely Connected Convolutional Networks](https://arxiv.org/abs/1608.06993) |
 
 ## **Segmentation Losses**
-| Loss                          |  Reference  |
-| -----------                   | ----------- |
-| **`IoU Loss`**                | - |
-| **`Dice Loss`**               | [Generalised Dice overlap as a deep learning loss function for highly unbalanced segmentations](https://arxiv.org/abs/1707.03237) |
-| **`Tversky Loss`**            | [Tversky loss function for image segmentation using 3D fully convolutional deep networks](https://arxiv.org/abs/1706.05721) |
-| **`Focal Tversky`**           | [A Novel Focal Tversky loss function with improved Attention U-Net for lesion segmentation](https://arxiv.org/abs/1810.07842) |
-| **`Hybrid Loss`**             | - |
-| **`Focal Hybrid Loss`**       | - |
+| Loss                          | Description | Reference  |
+| -----------                   | ----------- | ----------- |
+| **`IoU Loss`**                | Loss based on the IoU (Intersecion over Union) metric | [Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression](https://arxiv.org/abs/1902.09630) |
+| **`Dice Loss`**               | Loss based on the dice or F1 score | [Generalised Dice overlap as a deep learning loss function for highly unbalanced segmentations](https://arxiv.org/abs/1707.03237) |
+| **`Tversky Loss`**            | Generalized loss function based on the Tversky index to address the issue of data imbalance | [Tversky loss function for image segmentation using 3D fully convolutional deep networks](https://arxiv.org/abs/1706.05721) |
+| **`Focal Tversky`**           | Generalized focal loss function based on the Tversky index | [A Novel Focal Tversky loss function with improved Attention U-Net for lesion segmentation](https://arxiv.org/abs/1810.07842) |
+| **`Hybrid Loss`**             | Combines Region based Loss (Dice) Distribution based Loss (Crossentropy) | [Unified Focal loss: Generalising Dice and cross entropy-based losses to handle class imbalanced medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0895611121001750) |
+| **`Focal Hybrid Loss`**       | Focal variation of Hybrid Loss | [Unified Focal loss: Generalising Dice and cross entropy-based losses to handle class imbalanced medical image segmentation](https://www.sciencedirect.com/science/article/pii/S0895611121001750) |
