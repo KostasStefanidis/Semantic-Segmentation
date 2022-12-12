@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.10.1
+FROM tensorflow/tensorflow:latest-gpu
 #tensorflow/tensorflow:2.10.1-gpu
 
 ARG USERNAME=kstef
