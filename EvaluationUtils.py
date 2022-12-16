@@ -1,5 +1,17 @@
+/***************************************************************************************
+*    The following code is a modified version of :
+*    
+*    Title: Tensorflow
+*    Author: TensorFlow Authors
+*    Date: Jul 18, 2022
+*    Code version: 2.10
+*    Availability: https://github.com/keras-team/keras/blob/v2.10.0/keras/metrics/metrics.py
+*
+***************************************************************************************/
+
+
 import tensorflow as tf
-from keras.metrics import Metric # for tf 2.7
+from keras.metrics import Metric
 from keras import backend
 import numpy as np
 
