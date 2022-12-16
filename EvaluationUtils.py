@@ -1,13 +1,10 @@
-/***************************************************************************************
-*    The following code is a modified version of :
-*    
-*    Title: Tensorflow
-*    Author: TensorFlow Authors
-*    Date: Jul 18, 2022
-*    Code version: 2.10
-*    Availability: https://github.com/keras-team/keras/blob/v2.10.0/keras/metrics/metrics.py
-*
-***************************************************************************************/
+#     The following code is a modified version of :
+#     
+#     Title: Tensorflow
+#     Author: TensorFlow Authors
+#     Date: Jul 18, 2022
+#     Code version: 2.10
+#     Availability: https://github.com/keras-team/keras/blob/v2.10.0/keras/metrics/metrics.py
 
 
 import tensorflow as tf
@@ -92,7 +89,7 @@ class MeanIoU(Metric):
             tf.linalg.tensor_diag_part(self.total_cm), dtype=self._dtype)
 
         # sum_over_row + sum_over_col =
-        #     2 * true_positives + false_positives + false_negatives.
+        #     2  true_positives + false_positives + false_negatives.
         denominator = sum_over_row + sum_over_col - true_positives
 
         if self.target_class_ids is not None:
