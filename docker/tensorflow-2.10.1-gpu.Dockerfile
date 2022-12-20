@@ -1,5 +1,4 @@
-FROM tensorflow/tensorflow:latest-gpu
-#tensorflow/tensorflow:2.10.1-gpu
+FROM tensorflow/tensorflow:2.10.1-gpu
 
 ARG USERNAME=kstef
 
@@ -13,18 +12,22 @@ RUN mkdir -p /home/$USERNAME/.vscode-server/extensions \
         /home/$USERNAME/.vscode-server \
         /home/$USERNAME/.vscode-server-insiders
 
+# install usefull linux packages
 RUN apt-get install git -y \
 && apt-get install zip -y \
 && apt-get install unzip -y \
-&& apt-get install wget -y
+&& apt-get install wget -y \
+&& apt install screen -y
 
+# install usefull python packages
 RUN pip install --upgrade pip \
 && pip install ipython \
-&& pip install ipykernel \
+&& pip install ipykernel \ 
 && pip install tensorflow-addons \
+&& pip install scipy \
 && pip install pandas \
-&& pip install pydot \
-&& apt-get install graphviz -y
+&& pip install matplotlib \
+&& pip install -U scikit-learn
 
-RUN git config --global user.name $USERNAME@tf-container \
+RUN git config --global user.name $USERNAME \
 && git config --global user.email kstefanidis48@gmail.com

@@ -1,26 +1,29 @@
-version: '3.4'
-
 services:
   tensorflow:
-    image: tensorflow:2.10.1
-    container_name: tensorflow-2.10.1
+    image: tensorflow:2.10.1-gpu
+    build:
+      context: .
+      dockerfile: tensorflow-2.10.1-gpu.Dockerfile
+      args:
+        USERNAME: kstef
+      tags:
+        - "docker/tensorflow:2.10.1-gpu"
+    container_name: tf-0
     user: kstef
-    working_dir: /
+    working_dir: /home/kstef
     tty: true
     stdin_open: true
-    expose:
-      - "6001"
-      - "6002"
-    # ports:
-    #   - 6001:6001
-    #   - 6002:6002
+    ports:
+      - 6001:6001
+      - 6002:6002
     volumes:
       - /home/kstef/Semantic-Segmentation-Cityscapes:/home/kstef/Semantic-Segmentation-Cityscapes
-      - /home/kstef/tf-container-vscode-server-extensions:/home/kstef/.vscode-server/extensions
-      - /home/kstef/tf-container-vscode-server-insiders-extensions:/home/kstef/.vscode-server-insiders/extensions
       - /home/kstef/.keras:/home/kstef/.keras
-    networks:
-      - tf-network
-
-networks:
-  tf-network:
+      - /home/kstef/dataset:/home/kstef/dataset
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
