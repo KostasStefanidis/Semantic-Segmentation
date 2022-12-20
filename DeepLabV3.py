@@ -14,20 +14,22 @@ from argparse import ArgumentParser
 from keras.optimizers.schedules import PolynomialDecay
 
 parser = ArgumentParser('')
-parser.add_argument('-t', type=str, nargs='?', required=True)
-parser.add_argument('-m', type=str, nargs='?', required=True)
-parser.add_argument('-n', type=int, nargs='?', default='20', choices=[20,34])
-parser.add_argument('-p', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'ResNet'])
-parser.add_argument('-e', type=int, nargs='?', default='30')
-parser.add_argument('-b', type=int, nargs='?', default='3')
+parser.add_argument('--data_path', type=str, nargs='?', required=True)
+parser.add_argument('--model_type', type=str, nargs='?', required=True)
+parser.add_argument('--model_name', type=str, nargs='?', required=True)
+parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
+parser.add_argument('--preprocessing', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--epochs', type=int, nargs='?', default='60')
+parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 args = parser.parse_args()
 
-MODEL_TYPE = args.t
-MODEL_NAME = args.m
-NUM_CLASSES = args.n
-PREPROCESSING = args.p
-EPOCHS = args.e
-BATCH_SIZE = args.b
+data_path = args.data_path
+MODEL_TYPE = args.model_type
+MODEL_NAME = args.model_name
+NUM_CLASSES = args.num_classes
+PREPROCESSING = args.preprocessing
+EPOCHS = args.epochs
+BATCH_SIZE = args.batch_size
 FINAL_EPOCHS = 60
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)

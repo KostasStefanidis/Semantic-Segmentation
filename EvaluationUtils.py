@@ -17,7 +17,7 @@ class MeanIoU(Metric):
         super(MeanIoU, self).__init__(name=name, dtype=dtype)
         self.num_classes = num_classes
         self.ignore_class = ignore_class
-        self.target_class_ids = list(target_class_ids)
+        self.target_class_ids = target_class_ids
         self.sparse_y_true = sparse_y_true
         self.sparse_y_pred = sparse_y_pred
         self.axis = axis

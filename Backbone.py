@@ -14,26 +14,28 @@ from argparse import ArgumentParser
 from keras.optimizers.schedules import PolynomialDecay
 
 parser = ArgumentParser('')
-parser.add_argument('-t', type=str, nargs='?', required=True)
-parser.add_argument('-m', type=str, nargs='?', required=True)
-parser.add_argument('-n', type=int, nargs='?', default='20', choices=[20,34])
-parser.add_argument('-p', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'ResNet'])
-parser.add_argument('-e', type=int, nargs='?', default='30')
-parser.add_argument('-b', type=int, nargs='?', default='3')
+parser.add_argument('--data_path', type=str, nargs='?', required=True)
+parser.add_argument('--model_type', type=str, nargs='?', required=True)
+parser.add_argument('--model_name', type=str, nargs='?', required=True)
+parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
+parser.add_argument('--preprocessing', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--epochs', type=int, nargs='?', default='60')
+parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 args = parser.parse_args()
 
-MODEL_TYPE = args.t
-MODEL_NAME = args.m
-NUM_CLASSES = args.n
-PREPROCESSING = args.p
-EPOCHS = args.e
-BATCH_SIZE = args.b
-FINAL_EPOCHS = 60
+data_path = args.data_path
+MODEL_TYPE = args.model_type
+MODEL_NAME = args.model_name
+NUM_CLASSES = args.num_classes
+PREPROCESSING = args.preprocessing
+EPOCHS = args.epochs
+BATCH_SIZE = args.batch_size
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
 ACTIVATION = 'leaky_relu'
-DROPOUT_RATE = 0
+DROPOUT_RATE = 0.0
 DROPOUT_OFFSET = 0.02
+
 BACKBONE = PREPROCESSING
 BACKBONE_VERSION = 'V2S'
 BACKBONE_NAME = BACKBONE + BACKBONE_VERSION
@@ -41,8 +43,6 @@ BACKBONE_NAME = BACKBONE + BACKBONE_VERSION
 base_lr = 0.001
 
 ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
-
-data_path = ''
 
 # -------------------------------CALLBACKS---------------------------------------------------
 checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
@@ -93,6 +93,7 @@ model = DeepLabV3plus(input_shape=INPUT_SHAPE,
 model.summary()
 model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 callbacks = [model_checkpoint_callback, tensorboard_callback]
+
 # train model with backbone frozen
 history = model.fit(train_ds,
                     validation_data=val_ds,

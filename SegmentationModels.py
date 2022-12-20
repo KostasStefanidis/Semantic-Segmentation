@@ -434,6 +434,7 @@ def Residual_Unet(input_shape: tuple,
                   unfreeze_at = None,
                   kernel_initializer = HeNormal()
                   ):
+    
     """
     Instantiate a U-net model with a modified basic basic block with residual connections to improve network learning capacity.
 
@@ -464,20 +465,33 @@ def Residual_Unet(input_shape: tuple,
         - [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
         - [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
     """
-    
+    #           unet_type: str,
+#               input_shape: tuple,
+#               filters: tuple, 
+#               num_classes: int,
+#               activation: str,
+#               dropout_rate: float,
+#               dropout_type: str,              
+#               scale_dropout: bool,
+#               dropout_offset: float,
+#               backbone_name : str,
+#               freeze_backbone : bool,
+#               unfreeze_at : str,
+#               kernel_initializer,
+#               ):
     return  base_Unet('residual', 
-                      input_shape, 
-                      filters, 
-                      num_classes, 
-                      activation,
-                      dropout_rate, 
-                      dropout_type, 
-                      scale_dropout, 
-                      dropout_offset,
-                      kernel_initializer,
+                      input_shape=input_shape, 
+                      filters=filters, 
+                      num_classes=num_classes, 
+                      activation=activation,
+                      dropout_rate=dropout_rate, 
+                      dropout_type=dropout_type, 
+                      scale_dropout=scale_dropout, 
+                      dropout_offset=dropout_offset,
                       backbone_name=backbone_name,
                       freeze_backbone=freeze_backbone,
-                      unfreeze_at=unfreeze_at)
+                      unfreeze_at=unfreeze_at,
+                      kernel_initializer=kernel_initializer)
 
 
 def Attention_Unet(input_shape: tuple,
@@ -536,10 +550,10 @@ def Attention_Unet(input_shape: tuple,
                       dropout_type, 
                       scale_dropout, 
                       dropout_offset,
-                      kernel_initializer,
                       backbone_name=backbone_name,
                       freeze_backbone=freeze_backbone,
-                      unfreeze_at=unfreeze_at)
+                      unfreeze_at=unfreeze_at,
+                      kernel_initializer=kernel_initializer)
 
 
 def Unet_plus(input_shape: tuple,

@@ -6,18 +6,20 @@ import os
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
-parser.add_argument('-t', type=str, nargs='?', required=True)
-parser.add_argument('-m', type=str, nargs='?', required=True)
-parser.add_argument('-n', type=int, nargs='?', default='20', choices=[20,34])
-parser.add_argument('-p', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'ResNet'])
-parser.add_argument('-s', type=str, nargs='?', choices=['train', 'val', 'test'])
+parser.add_argument('--data_path', type=str, nargs='?', required=True)
+parser.add_argument('--model_type', type=str, nargs='?', required=True)
+parser.add_argument('--model_name', type=str, nargs='?', required=True)
+parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
+parser.add_argument('--preprocessing', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--split', type=str, nargs='?', choices=['train', 'val', 'test'], required=True)
 args = parser.parse_args()
 
-MODEL_TYPE = args.t
-MODEL_NAME = args.m
-NUM_CLASSES = args.n
-PREPROCESSING = args.p
-SPLIT = args.s
+data_path = args.data_path
+MODEL_TYPE = args.model_type
+MODEL_NAME = args.model_name
+NUM_CLASSES = args.num_classes
+PREPROCESSING = args.preprocessing
+SPLIT = args.split
 BATCH_SIZE = 1
 
 MODEL_NAME = f'{MODEL_TYPE}/{MODEL_NAME}'
@@ -25,13 +27,11 @@ MODELS_DIR = 'saved_models'
 pred_path = f'predictions/{MODEL_NAME}/{SPLIT}/grayscale'
 os.makedirs(pred_path, exist_ok=True)
 
-data_path = ''
-
 ds = Dataset(NUM_CLASSES, SPLIT, PREPROCESSING, shuffle=False)
 ds = ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 # add val set filenames into a python list
-img_path_ds = tf.data.Dataset.list_files(f'leftImg8bit_trainvaltest/leftImg8bit/{SPLIT}/*/*.png', shuffle=False)
+img_path_ds = tf.data.Dataset.list_files(f'{data_path}/leftImg8bit_trainvaltest/leftImg8bit/{SPLIT}/*/*.png', shuffle=False)
 img_name_list = []
 for img_path in img_path_ds:
     split = tf.strings.split(img_path, sep='/').numpy()
@@ -60,28 +60,5 @@ for dataset_elem, name in zip(ds, img_name_list):
             
     prediction = tf.expand_dims(prediction, axis=-1)
     # save predictions in 'predictions' folder
+    print('Saving prediciton for : ', name)
     tf.keras.utils.save_img(f'{pred_path}/{name}', prediction, data_format='channels_last', scale=False)
-    
-# FILTERS = [16,32,64,128,256]
-# INPUT_SHAPE = (1024, 2048, 3)
-# DROPOUT_RATE = 0.1
-# DROPOUT_OFFSET = 0.02
-# backbone_name = 'EffientNetB0'
-# model = Residual_Unet(input_shape=INPUT_SHAPE,
-#                       filters=FILTERS,
-#                       num_classes=NUM_CLASSES,
-#                       activation='leaky_relu',
-#                       dropout_rate=DROPOUT_RATE,
-#                       dropout_type='normal',
-#                       scale_dropout=False,
-#                       dropout_offset=DROPOUT_OFFSET,
-#                       backbone_name=backbone_name,
-#                       freeze_backbone=True
-#                       )
-
-# model_name = 'EfficientNetB0'
-# model_name = 'EfficientNetB3'
-# model_name = 'EfficientNetB3-fine-tuned'
-# model_name = 'ResNet50'
-# model.load_weights(f'saved_backbones/{model_name}')
-# model.summary()
