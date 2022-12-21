@@ -11,10 +11,10 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
-parser.add_argument('--model_type', type=str, nargs='?', required=True)
+parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
+parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
-parser.add_argument('--preprocessing', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
 #parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['dice', 'iou', 'crossentropy', 'tversky', 'focal_tversky', 'hybrid', 'focal_hybrid'])
 args = parser.parse_args()
 
@@ -22,24 +22,27 @@ data_path = args.data_path
 MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
 NUM_CLASSES = args.num_classes
-PREPROCESSING = args.preprocessing
+BACKBONE = args.backbone
 BATCH_SIZE = 1
 
+if BACKBONE == 'None':
+    PREPROCESSING = 'default'
+else:
+    PREPROCESSING = BACKBONE
+
 ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
+if NUM_CLASSES==34:
+    ignore_class = ignore_ids
+else:
+    ignore_class = 19
+    
 class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
                'pole', 'traffic light', 'traffic sign', 'vegetation',
                'terrain', 'sky', 'person', 'rider', 'car', 'truck',
                'bus', 'train', 'motorcycle', 'bicycle', 'void']
 
-model_dir = 'saved_models'
-
 val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
 val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
-
-if NUM_CLASSES==34:
-    ignore_class = ignore_ids
-else:
-    ignore_class = 19
 
 loss = HybridLoss()
 
@@ -71,6 +74,7 @@ metrics = [mean_iou, mean_iou_ignore,
            iou_12, iou_13, iou_14, iou_15,
            iou_16, iou_17, iou_18]
 
+model_dir = 'saved_models'
 model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
 model = tf.keras.models.load_model(model_filepath, compile=False)
 model.compile(loss=loss, metrics=metrics)
