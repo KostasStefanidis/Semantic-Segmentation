@@ -16,8 +16,8 @@ parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True)
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
-parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('--preprocessing', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('--epochs', type=int, nargs='?', default='60')
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 args = parser.parse_args()
@@ -77,14 +77,7 @@ model = Residual_Unet(input_shape=INPUT_SHAPE,
 
 model.summary()
 
-#loss = IoULoss(class_weights=np.load('class_weights/class_weights.npy'))
-#loss = DiceLoss()
-#loss = TverskyLoss()
-#loss = FocalTverskyLoss(beta=0.5) # -> FocalDice
 loss = HybridLoss()
-#loss = FocalHybridLoss
-
-#optimizer = AdamW(weight_decay=1e-5)
 optimizer = Adam()
 
 if NUM_CLASSES==34:
