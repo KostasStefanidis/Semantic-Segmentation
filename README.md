@@ -82,19 +82,19 @@ Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U
 Example: train a `DeepLabV3` model named `MyDeepLabV3` with `EfficientNetV2` backbone
 1. Train the model
     ```
-    > python3 evaluate_model.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --preprocessing EfficientNetV2
+    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2
     ```
 2. Evaluate the model on the validation set. 
     - Evaluate the MeanIoU 
     - Evaluate the IoU of every class seperatly
     - Generate the confusion matrix for validation set
     ```
-    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --preprocessing EfficientNetV2
+    > python3 evaluate_model.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2
     ```
 3. Create predictions for validation set
     - Perform inference on the validation set and save the predicted grayscale images
     ```
-    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --preprocessing EfficientNetV2 --split "val"
+    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2 --split "val"
     ```
     - Convert the predictions to RGB
     ```
@@ -103,7 +103,7 @@ Example: train a `DeepLabV3` model named `MyDeepLabV3` with `EfficientNetV2` bac
 4. Create predictions for test set
     - Perform inference on the test set and save the predicted grayscale images
     ```
-    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --preprocessing EfficientNetV2 --split "test"
+    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2 --split "test"
     ```
     - Convert the predictions to RGB
     ```
@@ -115,8 +115,8 @@ The `run.sh` script takes the following `necessary` flags:
 - -d : The path which contains the dataset
 - -m : Model type (Unet_res or DeepLabV3)
 - -n : The name the model will have
-- -p : What type of pre-processing will be done to the data as well as the type of backbone that will be used for the model.
+- -b : The type of backbone that will be used for the model.
 ```
-> ./train.sh -d /path/to/dataset -t DeepLabV3 -n MyDeepLabV3 -p EfficientNetV2
+> ./train.sh -d /path/to/dataset -t DeepLabV3 -n MyDeepLabV3 -b EfficientNetV2
 ```
 This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive

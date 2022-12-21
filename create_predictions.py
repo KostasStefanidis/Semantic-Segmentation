@@ -7,10 +7,10 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
-parser.add_argument('--model_type', type=str, nargs='?', required=True)
+parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
+parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
-parser.add_argument('--preprocessing', type=str, nargs='?', default='default', choices=['default', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
 parser.add_argument('--split', type=str, nargs='?', choices=['train', 'val', 'test'], required=True)
 args = parser.parse_args()
 
@@ -18,9 +18,14 @@ data_path = args.data_path
 MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
 NUM_CLASSES = args.num_classes
-PREPROCESSING = args.preprocessing
+BACKBONE = args.backbone
 SPLIT = args.split
 BATCH_SIZE = 1
+
+if BACKBONE == 'None':
+    PREPROCESSING = 'default'
+else:
+    PREPROCESSING = BACKBONE
 
 MODEL_NAME = f'{MODEL_TYPE}/{MODEL_NAME}'
 MODELS_DIR = 'saved_models'

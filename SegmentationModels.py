@@ -91,12 +91,12 @@ def visual_attention_block(encoder_input: Tensor, decoder_input: Tensor, kernel_
     channel_att = Dense(num_nodes, activation='sigmoid')(channel_att)
     channel_att = tf.broadcast_to(channel_att, shape=input_shape)
     
+    # spatial attention
     spatial_att = tf.reduce_mean(decoder_input, axis=-1)
     shape = K.int_shape(spatial_att)
     # Reshape because depth dimension is lost when taking then mean along the depth axis
     spatial_att = Reshape((shape[1], shape[2], 1))(spatial_att)
     spatial_att = Conv2D(1, kernel_size=3, padding='same', activation='sigmoid', kernel_initializer=kernel_initializer)(spatial_att)
-    spatial_att = tf.broadcast_to(spatial_att, shape=input_shape)
     
     channel_att_output = Multiply()([channel_att, encoder_input]) 
     output = Multiply()([spatial_att, channel_att_output])        
