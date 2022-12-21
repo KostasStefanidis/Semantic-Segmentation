@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
-parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3'])
+parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
@@ -71,36 +71,23 @@ callbacks = [model_checkpoint_callback, tensorboard_callback]
 # -------------------------------------------------------------------------------------------
 
 # Create Dataset pipeline
-# train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-# train_ds = train_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
+train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+train_ds = train_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
-# val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-# val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
+val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 # Instantiate Model
-if 'Unet' in MODEL_TYPE:
-    model_function = eval(MODEL_TYPE)
-    model = model_function(input_shape=INPUT_SHAPE,
-                           filters=FILTERS,
-                           num_classes=NUM_CLASSES,
-                           activation=ACTIVATION,
-                           dropout_rate=DROPOUT_RATE,
-                           dropout_type='normal',
-                           scale_dropout=False,
-                           dropout_offset=DROPOUT_OFFSET,
-                           backbone_name=BACKBONE_NAME,
-                           freeze_backbone=True
-                           )
-else:
-    model = DeepLabV3plus(input_shape=INPUT_SHAPE,
-                          filters=FILTERS,
-                          num_classes=NUM_CLASSES,
-                          activation='leaky_relu',
-                          dropout_rate=DROPOUT_RATE,
-                          dropout_type='normal',
-                          backbone_name=BACKBONE_NAME,
-                          freeze_backbone=True
-                          )
+model_function = eval(MODEL_TYPE)
+model = model_function(input_shape=INPUT_SHAPE,
+                        filters=FILTERS,
+                        num_classes=NUM_CLASSES,
+                        activation=ACTIVATION,
+                        dropout_rate=DROPOUT_RATE,
+                        dropout_type='normal',
+                        backbone_name=BACKBONE_NAME,
+                        freeze_backbone=True
+                        )
     
 model.summary()
 
@@ -113,9 +100,9 @@ metrics = [mean_iou, mean_iou_ignore]
 
 model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
-# history = model.fit(train_ds,
-#                     validation_data=val_ds,
-#                     epochs=EPOCHS,
-#                     callbacks = callbacks,
-#                     verbose = 1
-#                     )
+history = model.fit(train_ds,
+                    validation_data=val_ds,
+                    epochs=EPOCHS,
+                    callbacks = callbacks,
+                    verbose = 1
+                    )
