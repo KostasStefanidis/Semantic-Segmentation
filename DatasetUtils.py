@@ -221,6 +221,7 @@ class Dataset():
             ds = self.create_patches(ds)
             ds = ds.map(self.set_shape_for_patches)
         else:
+            # the shapes must be explicitly set because tensorflow cannot infer them when reading the data from files
             ds = ds.map(self.set_shape)
 
         if augment:
