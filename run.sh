@@ -1,3 +1,5 @@
+set -exo pipefail
+
 while getopts d:t:n:b: flag
 do
     case "${flag}" in
@@ -11,11 +13,11 @@ done
 MODEL=$MODEL_TYPE/$MODEL_NAME
 
 # train model
-python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE
+python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --epochs 60 --batch_size 1
 
 mkdir -m=776 Evaluation_logs/$MODEL_TYPE
 # Evaluate model and save results in eval/MODEL_NAME.txt file
-python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE
+python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE >> Evaluation_logs/$MODEL_TYPE/$MODEL_NAME
 
 # make predictions with the validation set and convert them to rgb
 python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"

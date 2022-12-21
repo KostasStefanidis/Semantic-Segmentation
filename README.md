@@ -55,7 +55,7 @@ Generally images have a shape of `(batch_size, height, width, channels)`
 | **`U-net++`**             | [UNet++: A Nested U-Net Architecture for Medical Image Segmentation](https://arxiv.org/abs/1807.10165) |
 | **`DeepLabV3+`**          | [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611) |
 
-Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U-net`, `Attention U-net` and `DeepLabV3+`.
+Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U-net` and `DeepLabV3+`.
 
 ## Supported Network families as backbone choices:
 | Network Family            |  Reference  |
@@ -79,35 +79,35 @@ Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U
 
 ## Script usage
 
-Example: train a `DeepLabV3` model named `MyDeepLabV3` with `EfficientNetV2` backbone
+Example: train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNetV2` backbone
 1. Train the model
     ```
-    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2
+    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2
     ```
 2. Evaluate the model on the validation set. 
     - Evaluate the MeanIoU 
     - Evaluate the IoU of every class seperatly
     - Generate the confusion matrix for validation set
     ```
-    > python3 evaluate_model.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2
+    > python3 evaluate_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 
     ```
 3. Create predictions for validation set
     - Perform inference on the validation set and save the predicted grayscale images
     ```
-    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2 --split "val"
+    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 --split "val"
     ```
     - Convert the predictions to RGB
     ```
-    > python3 convert2rgb.py --model_type DeepLabV3 --model_name $MODEL_NAME --split "val"
+    > python3 convert2rgb.py --model_type DeepLabV3plus --model_name MyDeepLabV3plus --split "val"
     ```
 4. Create predictions for test set
     - Perform inference on the test set and save the predicted grayscale images
     ```
-    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3 --model_name MyDeepLabV3 --backbone EfficientNetV2 --split "test"
+    > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 --split "test"
     ```
     - Convert the predictions to RGB
     ```
-    > python3 convert2rgb.py --model_type DeepLabV3 --model_name $MODEL_NAME --split "test"
+    > python3 convert2rgb.py --model_type DeepLabV3plus --model_name MyDeepLabV3plus --split "test"
     ```
 
 
@@ -117,6 +117,6 @@ The `run.sh` script takes the following `necessary` flags:
 - -n : The name the model will have
 - -b : The type of backbone that will be used for the model.
 ```
-> ./train.sh -d /path/to/dataset -t DeepLabV3 -n MyDeepLabV3 -b EfficientNetV2
+> ./train.sh -d /path/to/dataset -t DeepLabV3plus -n MyDeepLabV3plus -b EfficientNetV2
 ```
-This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive
+This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive.
