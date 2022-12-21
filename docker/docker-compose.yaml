@@ -7,15 +7,12 @@ services:
       args:
         USERNAME: kstef
       tags:
-        - "docker/tensorflow:2.10.1-gpu"
+        - "tensorflow:2.10.1-gpu"
     container_name: tf-0
-    user: kstef
-    working_dir: /home/kstef
+    user: root
+    working_dir: /home/kstef/Semantic-Segmentation-Cityscapes
     tty: true
     stdin_open: true
-    ports:
-      - 6001:6001
-      - 6002:6002
     volumes:
       - /home/kstef/Semantic-Segmentation-Cityscapes:/home/kstef/Semantic-Segmentation-Cityscapes
       - /home/kstef/.keras:/home/kstef/.keras
