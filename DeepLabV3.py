@@ -61,10 +61,6 @@ tensorboard_callback = TensorBoard(log_dir=log_dir,
                                 write_graph=False,
                                 write_steps_per_second=False)
 
-# csv_logs_dir = f'CSV_logs/{MODEL_TYPE}/{MODEL_NAME}.csv'
-# os.makedirs(csv_logs_dir, exist_ok=True)
-# csv_callback = CSVLogger(csv_logs_dir)
-
 callbacks = [model_checkpoint_callback, tensorboard_callback]
 # -------------------------------------------------------------------------------------------
 
@@ -88,15 +84,8 @@ lr_schedule = PolynomialDecay(initial_learning_rate=MAX_LR,
                               power=2,
                               cycle=False)
 
-#loss = IoULoss(class_weights=np.load('class_weights/class_weights.npy'))
 loss = HybridLoss()
-#loss = FocalHybridLoss(beta=0.5)
-
 optimizer = Adam(base_lr)
-# optimizer = AdamW(1e-5)
-# optimizer = AdaBelief()
-# optimizer = SGD(learning_rate=0.01, momentum=0.9)
-#optimizer = SGDW(learning_rate=0.01, momentum=0.9, weight_decay=1e-5)
 
 if NUM_CLASSES==34:
     ignore_class = ignore_ids
