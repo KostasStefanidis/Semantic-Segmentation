@@ -50,10 +50,6 @@ def conv_block(input_tensor: Tensor,
     x = BatchNormalization()(x)
     
     if unet_type == 'residual' or unet_type=='attention':
-        # test residual block with 3 convolutions
-        # x = Activation(activation)(x)
-        # x = Conv2D(filters, kernel_size=(3, 3), padding='same', kernel_initializer=kernel_initializer)(x)
-        # x = BatchNormalization()(x)
         x = Add()([x, residual])
     
     x = Activation(activation)(x)
@@ -465,20 +461,7 @@ def Residual_Unet(input_shape: tuple,
         - [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
         - [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
     """
-    #           unet_type: str,
-#               input_shape: tuple,
-#               filters: tuple, 
-#               num_classes: int,
-#               activation: str,
-#               dropout_rate: float,
-#               dropout_type: str,              
-#               scale_dropout: bool,
-#               dropout_offset: float,
-#               backbone_name : str,
-#               freeze_backbone : bool,
-#               unfreeze_at : str,
-#               kernel_initializer,
-#               ):
+
     return  base_Unet('residual', 
                       input_shape=input_shape, 
                       filters=filters, 
