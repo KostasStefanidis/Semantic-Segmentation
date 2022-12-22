@@ -6,7 +6,7 @@ from DatasetUtils import color_map
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
-parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3'])
+parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--split', type=str, nargs='?', choices=['train', 'val', 'test'], required=True)
 args = parser.parse_args()
