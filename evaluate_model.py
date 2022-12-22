@@ -14,8 +14,8 @@ parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
-#parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['dice', 'iou', 'crossentropy', 'tversky', 'focal_tversky', 'hybrid', 'focal_hybrid'])
 args = parser.parse_args()
 
 data_path = args.data_path
@@ -23,6 +23,7 @@ MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
 NUM_CLASSES = args.num_classes
 BACKBONE = args.backbone
+LOSS = args.loss
 BATCH_SIZE = 1
 
 if BACKBONE == 'None':
@@ -44,7 +45,8 @@ class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
 val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
 val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
-loss = HybridLoss()
+loss_func = eval(LOSS)
+loss = loss_func()
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
