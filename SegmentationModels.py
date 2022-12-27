@@ -218,7 +218,7 @@ def DeepLabV3plus(input_shape: tuple,
                   backbone_name = None,
                   freeze_backbone = True,
                   unfreeze_at = None,
-                  kernel_initializer = HeNormal()
+                  kernel_initializer = HeNormal(42)
                   ):
     
     """
@@ -369,7 +369,7 @@ def Unet(input_shape: tuple,
          backbone_name = None,
          freeze_backbone = True,
          unfreeze_at = None,
-         kernel_initializer = HeNormal()
+         kernel_initializer = HeNormal(42)
          ):
     
     """
@@ -428,7 +428,7 @@ def Residual_Unet(input_shape: tuple,
                   backbone_name = None,
                   freeze_backbone = True,
                   unfreeze_at = None,
-                  kernel_initializer = HeNormal()
+                  kernel_initializer = HeNormal(42)
                   ):
     
     """
@@ -488,7 +488,7 @@ def Attention_Unet(input_shape: tuple,
                    backbone_name = None,
                    freeze_backbone = True,
                    unfreeze_at = None,
-                   kernel_initializer = HeNormal()
+                   kernel_initializer = HeNormal(42)
                    ):
     """
     Instantiate a U-net model that uses attention modules in each decoder block to improve segmentation results by weighing 
@@ -549,7 +549,7 @@ def Unet_plus(input_shape: tuple,
               dropout_offset: float = 0.01,
               deep_supervision: bool = False,
               attention: bool = False,
-              kernel_initializer = HeNormal()
+              kernel_initializer = HeNormal(42)
               ):
     
     """
