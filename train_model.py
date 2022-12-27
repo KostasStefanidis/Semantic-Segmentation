@@ -17,9 +17,11 @@ parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
+parser.add_argument('--batch_size', type=int, nargs='?', default='3')
+parser.add_argument('--activation', type=str, nargs='?', default='relu')
+parser.add_argument('--dropout', type=float, nargs='?', default=0.0)
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('--epochs', type=int, nargs='?', default='60')
-parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 args = parser.parse_args()
 
 # parse arguments
@@ -31,13 +33,13 @@ BACKBONE = args.backbone
 LOSS = args.loss
 EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
+ACTIVATION = args.activation
+DROPOUT_RATE = args.dropout
 
 # define other constants
 FINAL_EPOCHS = 60
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
-ACTIVATION = 'leaky_relu'
-DROPOUT_RATE = 0.1
 DROPOUT_OFFSET = 0.02
 
 if BACKBONE == 'None':
