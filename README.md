@@ -79,10 +79,10 @@ Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U
 
 ## Script usage
 
-Example: train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNetV2` backbone
+Example: train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNetV2` backbone, `Dice Loss` as a loss function, using batch size equal to `1`, the `relu` activation function and dropout rate of `0.1` for the Dropout layers, for `60 epochs`.
 1. Train the model
     ```
-    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2
+    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 --loss DiceLoss --batch_size 1 --activation relu --dropout 0.1 --epochs 60
     ```
 2. Evaluate the model on the validation set. 
     - Evaluate the MeanIoU 
@@ -113,10 +113,16 @@ Example: train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNe
 
 The `run.sh` script takes the following `necessary` flags:
 - -d : The path which contains the dataset
-- -m : Model type (Unet_res or DeepLabV3)
+- -t : Model type (Unet_res or DeepLabV3)
 - -n : The name the model will have
 - -b : The type of backbone that will be used for the model.
+- -l : Loss function to be used for training the model. Options: `DiceLoss`, `IoULoss`, `TverskyLoss`, `FocalTverskyLoss`, `HybridLoss`, `FocalHybridLoss`
+- s : Batch size
+- a : Activation function to be used at the output of each Conv2D layer
+- r : Dropout rate : Defaults to 0.
+- e : The number of epochs the model will be trained for.
+- p : Whether to make predictions or not for val and test sets after training and evaluating the model. Defaults to false.
 ```
-> ./train.sh -d /path/to/dataset -t DeepLabV3plus -n MyDeepLabV3plus -b EfficientNetV2
+> ./run.sh -d /path/to/dataset -t DeepLabV3plus -n MyDeepLabV3plus -b EfficientNetV2 
 ```
 This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive.
