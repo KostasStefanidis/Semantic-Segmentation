@@ -193,7 +193,6 @@ class Dataset():
             'default': normalization_layer,
             'ResNet': resnet.preprocess_input,
             'ResNetV2' : resnet_v2.preprocess_input,
-            'DenseNet': densenet.preprocess_input,
             'EfficientNet' : efficientnet.preprocess_input,
             'EfficientNetV2' : efficientnet_v2.preprocess_input
         }

@@ -64,7 +64,6 @@ Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U
 | **`ResNetV2`**            | [Identity Mappings in Deep Residual Networks](https://arxiv.org/abs/1603.05027) |
 | **`EfficientNet`**        | [EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks](https://arxiv.org/abs/1905.11946) |
 | **`EfficientNetV2`**      | [EfficientNetV2: Smaller Models and Faster Training](https://arxiv.org/abs/2104.00298) |
-| **`DenseNet`**            | [Densely Connected Convolutional Networks](https://arxiv.org/abs/1608.06993) |
 
 ## **Segmentation Losses**
 | Loss                          | Description | Reference  |
