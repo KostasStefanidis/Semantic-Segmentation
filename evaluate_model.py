@@ -81,21 +81,10 @@ model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
 model = tf.keras.models.load_model(model_filepath, compile=False)
 model.compile(loss=loss, metrics=metrics)
 
-# calculate parameters
-trainableParams = np.sum([np.prod(v.get_shape()) for v in model.trainable_weights])
-nonTrainableParams = np.sum([np.prod(v.get_shape()) for v in model.non_trainable_weights])
-totalParams = trainableParams + nonTrainableParams
-
-print(f'{MODEL_TYPE}/{MODEL_NAME}')
-print('---------------------------------------')
-print('Total params: ', totalParams)
-print('Trainable params: ', trainableParams)
-print('Non-Trainable params: ', nonTrainableParams)
-print()
-
 print('Model Evaluation')
 score = model.evaluate(val_ds, verbose=2)
 print()
+print(model.summary())
 
 confusion_matrix = mean_iou.get_confusion_matrix()
 plt.rcParams["figure.figsize"] = (25,20)

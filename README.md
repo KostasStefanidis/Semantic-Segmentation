@@ -112,7 +112,7 @@ Example: train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNe
 
 The `run.sh` script takes the following `necessary` flags:
 - -d : The path which contains the dataset
-- -t : Model type (Unet_res or DeepLabV3)
+- -t : Model type
 - -n : The name the model will have
 - -b : The type of backbone that will be used for the model.
 - -l : Loss function to be used for training the model. Options: `DiceLoss`, `IoULoss`, `TverskyLoss`, `FocalTverskyLoss`, `HybridLoss`, `FocalHybridLoss`
