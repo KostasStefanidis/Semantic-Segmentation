@@ -1,5 +1,5 @@
 #! /bin/bash
-set -xo pipefail
+set -exo pipefail
 
 # set Default values
 PREDICT=false
