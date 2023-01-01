@@ -174,7 +174,7 @@ class HybridLoss(DiceLoss):
 
 
 class FocalHybridLoss(FocalTverskyLoss):
-    def __init__(self, gamma1=4/3, gamma2=2, beta=0.7, alpha1=1.0, alpha2=1.0, class_weights=None):
+    def __init__(self, gamma1=4/3, gamma2=2, beta=0.5, alpha1=1.0, alpha2=1.0, class_weights=None):
         """
         Focal Hybrid Loss is Hybrid Loss variant with extra focal parameters. In Focal Hybrid Loss, Dice Loss is
         replaced by Focal Tversky Loss and Crossentropy Loss is replaced by Focal Crossentropy Loss.
