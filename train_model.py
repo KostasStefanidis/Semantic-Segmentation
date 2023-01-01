@@ -15,7 +15,7 @@ parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
-parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet', 'ResNetV2'])
+parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
@@ -44,11 +44,15 @@ DROPOUT_OFFSET = 0.02
 
 if BACKBONE == 'None':
     PREPROCESSING = 'default'
-    BACKBONE_NAME = None
+    BACKBONE = None
+elif 'ResNet' in BACKBONE:
+    PREPROCESSING = 'ResNet'
+elif 'EfficientNet' in BACKBONE:
+    PREPROCESSING = 'EfficientNet'
+elif 'EfficientNetV2' in BACKBONE:
+    PREPROCESSING = 'EfficientNetV2'
 else:
-    PREPROCESSING = BACKBONE
-    BACKBONE_VERSION = 'S'
-    BACKBONE_NAME = BACKBONE + BACKBONE_VERSION
+    raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
 ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
 if NUM_CLASSES==34:
@@ -89,7 +93,7 @@ model = model_function(input_shape=INPUT_SHAPE,
                         activation=ACTIVATION,
                         dropout_rate=DROPOUT_RATE,
                         dropout_type='normal',
-                        backbone_name=BACKBONE_NAME,
+                        backbone_name=BACKBONE,
                         freeze_backbone=True
                         )
     
