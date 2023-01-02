@@ -14,8 +14,8 @@ from keras.applications.efficientnet import EfficientNetB3, EfficientNetB4, Effi
 from keras.applications.efficientnet import EfficientNetB6, EfficientNetB7
 from keras.applications.efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2
 from keras.applications.efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
-from keras.applications.densenet import DenseNet121, DenseNet169, DenseNet201
 from keras.applications.resnet import ResNet50,ResNet101,ResNet152
+from keras.applications.resnet_v2 import ResNet50V2,ResNet101V2,ResNet152V2
 from warnings import warn
 
 
@@ -39,7 +39,6 @@ def conv_block(input_tensor: Tensor,
                kernel_initializer: str,
                unet_type: str) -> Tensor:
     
-    # no dilation in residual connection
     residual = Conv2D(filters, kernel_size=1, padding='same', kernel_initializer=kernel_initializer)(input_tensor)
     
     x = Conv2D(filters, kernel_size=3, padding='same', kernel_initializer=kernel_initializer)(input_tensor)
@@ -85,14 +84,14 @@ def visual_attention_block(encoder_input: Tensor, decoder_input: Tensor, kernel_
     channel_att = GlobalAveragePooling2D()(decoder_input)
     channel_att = Dense(num_nodes/r, activation='relu', input_shape=(num_nodes,))(channel_att)
     channel_att = Dense(num_nodes, activation='sigmoid')(channel_att)
-    channel_att = tf.broadcast_to(channel_att, shape=input_shape)
+    #channel_att = tf.broadcast_to(channel_att, shape=input_shape)
     
     # spatial attention
     spatial_att = tf.reduce_mean(decoder_input, axis=-1)
     shape = K.int_shape(spatial_att)
     # Reshape because depth dimension is lost when taking then mean along the depth axis
     spatial_att = Reshape((shape[1], shape[2], 1))(spatial_att)
-    spatial_att = Conv2D(1, kernel_size=3, padding='same', activation='sigmoid', kernel_initializer=kernel_initializer)(spatial_att)
+    spatial_att = Conv2D(filters=1, kernel_size=3, padding='same', activation='sigmoid', kernel_initializer=kernel_initializer)(spatial_att)
     
     channel_att_output = Multiply()([channel_att, encoder_input]) 
     output = Multiply()([spatial_att, channel_att_output])        
