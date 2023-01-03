@@ -13,7 +13,7 @@ parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
-parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 args = parser.parse_args()
@@ -28,8 +28,15 @@ BATCH_SIZE = 1
 
 if BACKBONE == 'None':
     PREPROCESSING = 'default'
+    BACKBONE = None
+elif 'ResNet' in BACKBONE:
+    PREPROCESSING = 'ResNet'
+elif 'EfficientNet' in BACKBONE:
+    PREPROCESSING = 'EfficientNet'
+elif 'EfficientNetV2' in BACKBONE:
+    PREPROCESSING = 'EfficientNetV2'
 else:
-    PREPROCESSING = BACKBONE
+    raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
 ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
 if NUM_CLASSES==34:

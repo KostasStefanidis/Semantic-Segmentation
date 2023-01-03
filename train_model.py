@@ -25,7 +25,7 @@ parser.add_argument('--epochs', type=int, nargs='?', default='60')
 args = parser.parse_args()
 
 # parse arguments
-data_path = args.data_path
+DATA_PATH = args.data_path
 MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
 NUM_CLASSES = args.num_classes
@@ -60,13 +60,18 @@ if NUM_CLASSES==34:
 else:
     ignore_class = 19
 
-# -------------------------------CALLBACKS---------------------------------------------------
+# ---------------------------------------CALLBACKS-------------------------------------------
+if BACKBONE is None:
+    save_best_only = True
+else:
+    save_best_only = False
+
 checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
 model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                             save_weights_only=False,
                                             monitor='val_MeanIoU',
                                             mode='max',
-                                            save_best_only=True,
+                                            save_best_only=save_best_only,
                                             verbose=0)
 
 log_dir = f'Tensorboard_logs/{MODEL_TYPE}/{MODEL_NAME}'
@@ -80,10 +85,10 @@ callbacks = [model_checkpoint_callback, tensorboard_callback]
 
 # Create Dataset pipeline
 train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-train_ds = train_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
+train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
+val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 # Instantiate Model
 model_function = eval(MODEL_TYPE)
@@ -102,7 +107,15 @@ model.summary()
 loss_func = eval(LOSS)
 loss = loss_func()
 
-optimizer = Adam()
+lr = tf.keras.optimizers.schedules.PolynomialDecay(
+    initial_learning_rate=0.001,
+    decay_steps=20*992,
+    end_learning_rate=0.0001,
+    power=2.0,
+    cycle=False,
+    name=None
+)
+optimizer = Adam(lr)
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
@@ -116,3 +129,52 @@ history = model.fit(train_ds,
                     callbacks = callbacks,
                     verbose = 1
                     )
+
+# FINE TUNE MODEL
+if BACKBONE is not None:
+    train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+
+    val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+    
+    # Re-define checkpoint callback to save only the best model
+    checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
+    model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
+                                                save_weights_only=False,
+                                                monitor='val_MeanIoU',
+                                                mode='max',
+                                                save_best_only=True,
+                                                verbose=0)
+    
+    callbacks = [model_checkpoint_callback, tensorboard_callback]
+    
+    # instantiate model again with the last part of the encoder (Backbone) un-frozen
+    model = model_function(input_shape=INPUT_SHAPE,
+                            filters=FILTERS,
+                            num_classes=NUM_CLASSES,
+                            activation=ACTIVATION,
+                            dropout_rate=DROPOUT_RATE,
+                            dropout_type='normal',
+                            backbone_name=BACKBONE,
+                            freeze_backbone=False,
+                            unfreeze_at='block6a_expand_activation'
+                            )
+    
+    # load the saved weights into the model to fine tune the high level features of the feature extractor
+    # Fine tune the encoder network with a lower learning rate
+    model.load_weights(checkpoint_filepath)
+    
+    model.summary()
+    
+    optimizer = Adam(learning_rate=0.0001)
+    
+    model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+    
+    history = model.fit(train_ds,
+                        validation_data=val_ds,
+                        initial_epoch=EPOCHS,
+                        epochs=FINAL_EPOCHS,
+                        callbacks = callbacks,
+                        verbose = 1
+                        )

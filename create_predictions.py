@@ -9,7 +9,7 @@ parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
-parser.add_argument('--backbone', type=str, nargs='?', default='None', choices=['None', 'EfficientNet', 'EfficientNetV2', 'ResNet'])
+parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('--split', type=str, nargs='?', choices=['train', 'val', 'test'], required=True)
 args = parser.parse_args()
@@ -24,8 +24,15 @@ BATCH_SIZE = 1
 
 if BACKBONE == 'None':
     PREPROCESSING = 'default'
+    BACKBONE = None
+elif 'ResNet' in BACKBONE:
+    PREPROCESSING = 'ResNet'
+elif 'EfficientNet' in BACKBONE:
+    PREPROCESSING = 'EfficientNet'
+elif 'EfficientNetV2' in BACKBONE:
+    PREPROCESSING = 'EfficientNetV2'
 else:
-    PREPROCESSING = BACKBONE
+    raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
 MODEL_NAME = f'{MODEL_TYPE}/{MODEL_NAME}'
 MODELS_DIR = 'saved_models'
