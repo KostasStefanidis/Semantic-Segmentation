@@ -543,9 +543,12 @@ def Unet_plus(input_shape: tuple,
               dropout_type: str = 'normal',
               scale_dropout: bool = True,
               dropout_offset: float = 0.01,
+              backbone_name = None,
+              freeze_backbone = True,
+              unfreeze_at = None,
+              kernel_initializer = HeNormal(42),
               deep_supervision: bool = False,
-              attention: bool = False,
-              kernel_initializer = HeNormal(42)
+              attention: bool = False
               ):
     
     """

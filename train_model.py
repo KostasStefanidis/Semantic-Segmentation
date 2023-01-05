@@ -7,7 +7,7 @@ from keras import mixed_precision
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
 from DatasetUtils import Dataset
 from EvaluationUtils import MeanIoU
-from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, DeepLabV3plus
+from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from tensorflow_addons.optimizers import CyclicalLearningRate
 from argparse import ArgumentParser
 
