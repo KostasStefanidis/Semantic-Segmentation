@@ -40,7 +40,8 @@ DROPOUT_RATE = args.dropout
 FINAL_EPOCHS = 60
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
-DROPOUT_OFFSET = 0.02
+initial_lr = 0.001
+end_lr = 0.0001
 
 if BACKBONE == 'None':
     PREPROCESSING = 'default'
@@ -83,7 +84,7 @@ tensorboard_callback = TensorBoard(log_dir=log_dir,
 callbacks = [model_checkpoint_callback, tensorboard_callback]
 # -------------------------------------------------------------------------------------------
 
-# Create Dataset pipeline
+# Create Dataset stream
 train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
 train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
@@ -93,29 +94,30 @@ val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=
 # Instantiate Model
 model_function = eval(MODEL_TYPE)
 model = model_function(input_shape=INPUT_SHAPE,
-                        filters=FILTERS,
-                        num_classes=NUM_CLASSES,
-                        activation=ACTIVATION,
-                        dropout_rate=DROPOUT_RATE,
-                        dropout_type='normal',
-                        backbone_name=BACKBONE,
-                        freeze_backbone=True
-                        )
+                       filters=FILTERS,
+                       num_classes=NUM_CLASSES,
+                       activation=ACTIVATION,
+                       dropout_rate=DROPOUT_RATE,
+                       dropout_type='normal',
+                       backbone_name=BACKBONE,
+                       freeze_backbone=True
+                       )
     
 model.summary()
 
 loss_func = eval(LOSS)
 loss = loss_func()
 
-lr = tf.keras.optimizers.schedules.PolynomialDecay(
-    initial_learning_rate=0.001,
-    decay_steps=20*992,
-    end_learning_rate=0.0001,
-    power=2.0,
+lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
+    initial_learning_rate=initial_lr,
+    decay_steps=30*992,
+    end_learning_rate=end_lr,
+    power=2,
     cycle=False,
     name=None
-)
-optimizer = Adam(lr)
+    )
+
+optimizer = Adam(initial_lr) if BACKBONE is None else Adam(lr_schedule)
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
@@ -132,6 +134,9 @@ history = model.fit(train_ds,
 
 # FINE TUNE MODEL
 if BACKBONE is not None:
+    #* After unfreezing the final backbone weights the barch size might need to be reduced to
+    #* prevent OOM
+    #* Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
     train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
@@ -167,7 +172,7 @@ if BACKBONE is not None:
     
     model.summary()
     
-    optimizer = Adam(learning_rate=0.0001)
+    optimizer = Adam(learning_rate=end_lr)
     
     model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
     
