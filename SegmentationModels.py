@@ -628,17 +628,12 @@ def Unet_plus(input_shape: tuple,
         # Pre-trained Backbone as Encoder
         backbone = get_backbone(backbone_name, input_tensor=x0_0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
         Skip = backbone(x0_0, training=False)
-        #TODO Need to define skip1_0, skip2_0 ...
+
         # skip is the signal right before the downsampling
         # x is the signal right after the downsampling
         Skip.insert(0, None)
-        skip0_0,   skip1_0,  skip2_0, skip3_0, skip4_0, skip5_0 = Skip
-       #1024x2048, 512x1024, 256x512, 128x256, 64x128 , 32x64
-        print(f'{skip1_0.shape=}')
-        print(f'{skip2_0.shape=}')
-        print(f'{skip3_0.shape=}')
-        print(f'{skip4_0.shape=}')
-        print(f'{skip5_0.shape=}')
+        skip0_0, skip1_0, skip2_0, skip3_0, skip4_0, skip5_0 = Skip
+        # skip0_0 is None
         
         x0_1 = upsample_and_concat(skip1_0, skip0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
         x1_1 = upsample_and_concat(skip2_0, skip1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
