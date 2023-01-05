@@ -98,7 +98,7 @@ def visual_attention_block(encoder_input: Tensor, decoder_input: Tensor, kernel_
     return output
 
 
-def upsampling_block(input_tensor: Tensor,
+def upsample_and_concat(input_tensor: Tensor,
                      skip_connection: Tensor,
                      filters: int,
                      dropout_rate: float,
@@ -154,6 +154,9 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
     'EfficientNetV2M' : ('block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
     'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation')
     }
+    
+    # EfficientNetV2S after downsampling outputs
+    # stem_conv(), block2a_expand_conv, block3a_expand_conv, block4a_dwconv2, block6a_dwconv2, 
     
     layer_names = backbone_layers[backbone_name]
     
@@ -329,7 +332,7 @@ def base_Unet(unet_type: str,
         
         # Decoder
         for i in range(depth-2, -1, -1):
-            x = upsampling_block(x, Skip[i], filters[i], dropout_rate[i], dropout_type[i], activation, kernel_initializer, unet_type)
+            x = upsample_and_concat(x, Skip[i], filters[i], dropout_rate[i], dropout_type[i], activation, kernel_initializer, unet_type)
 
     else:
         # when using bakcbone because the stem performs downsampling and we have another 4 downsampling layers
@@ -346,7 +349,7 @@ def base_Unet(unet_type: str,
     
         # iterate 4 times
         for i in range(depth-1, -1, -1):
-            x = upsampling_block(x, Skip[i], filters[i], dropout_rate[i], dropout_type[i], activation, kernel_initializer, unet_type)
+            x = upsample_and_concat(x, Skip[i], filters[i], dropout_rate[i], dropout_type[i], activation, kernel_initializer, unet_type)
         
     output = Conv2D(num_classes, kernel_size=(1,1), kernel_initializer=kernel_initializer)(x)
     output = Activation('softmax', name='output', dtype='float32')(output)
@@ -543,9 +546,12 @@ def Unet_plus(input_shape: tuple,
               dropout_type: str = 'normal',
               scale_dropout: bool = True,
               dropout_offset: float = 0.01,
+              backbone_name = None,
+              freeze_backbone = True,
+              unfreeze_at = None,
+              kernel_initializer = HeNormal(42),
               deep_supervision: bool = False,
-              attention: bool = False,
-              kernel_initializer = HeNormal(42)
+              attention: bool = False
               ):
     
     """
@@ -604,33 +610,65 @@ def Unet_plus(input_shape: tuple,
     
     x0_0 = tf.keras.Input(shape=input_shape)
 
-    x1_0, skip1_0 = downsampling_block(x0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-    x2_0, skip2_0 = downsampling_block(x1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-    x3_0, skip3_0 = downsampling_block(x2_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
-    x4_0, skip4_0 = downsampling_block(x3_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
+    if backbone_name is None:
+        x1_0, skip1_0 = downsampling_block(x0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
+        x2_0, skip2_0 = downsampling_block(x1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
+        x3_0, skip3_0 = downsampling_block(x2_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
+        x4_0, skip4_0 = downsampling_block(x3_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
+        
+        print(f'{x1_0.shape=}, {skip1_0.shape=}')
+        print(f'{x2_0.shape=}, {skip2_0.shape=}')
+        print(f'{x3_0.shape=}, {skip3_0.shape=}')
+        print(f'{x4_0.shape=}, {skip4_0.shape=}')
+        
+        x4_0 = conv_block(x4_0, filters[4], dropout_rate[4], dropout_type[4], activation, kernel_initializer, unet_type)
+        print(f'after bottleneck: {x4_0.shape=}')
     
-    x4_0 = conv_block(x4_0, filters[4], dropout_rate[4], dropout_type[4], activation, kernel_initializer, unet_type)
-
-    x0_1 = upsampling_block(x1_0, skip1_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-    x1_1 = upsampling_block(x2_0, skip2_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-    x2_1 = upsampling_block(x3_0, skip3_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
-    x3_1 = upsampling_block(x4_0, skip4_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
-    
-    skip0_2 = Concatenate(axis=-1)([x0_1, skip1_0])
-    x0_2 = upsampling_block(x1_1, skip0_2, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)    
-    skip1_2 = Concatenate(axis=-1)([x1_1, skip2_0])
-    x1_2 = upsampling_block(x2_1, skip1_2, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-    skip2_2 = Concatenate(axis=-1)([x2_1, skip3_0])
-    x2_2 = upsampling_block(x3_1, skip2_2, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
-    
-    skip0_3 = Concatenate(axis=-1)([x0_2, x0_1, skip1_0])
-    x0_3 = upsampling_block(x1_2, skip0_3, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-    skip1_3 = Concatenate(axis=-1)([x1_2, x1_1, skip2_0])
-    x1_3 = upsampling_block(x2_2, skip1_3, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-    
-    skip0_4 = Concatenate(axis=-1)([x0_3, x0_2, x0_1, skip1_0])
-    x0_4 = upsampling_block(x1_3, skip0_4, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-    
+    else:
+        # Pre-trained Backbone as Encoder
+        backbone = get_backbone(backbone_name, input_tensor=x0_0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+        Skip = backbone(x0_0, training=False)
+        #TODO Need to define skip1_0, skip2_0 ...
+        # skip is the signal right before the downsampling
+        # x is the signal right after the downsampling
+        Skip.insert(0, None)
+        skip0_0,   skip1_0,  skip2_0, skip3_0, skip4_0, skip5_0 = Skip
+       #1024x2048, 512x1024, 256x512, 128x256, 64x128 , 32x64
+        print(f'{skip1_0.shape=}')
+        print(f'{skip2_0.shape=}')
+        print(f'{skip3_0.shape=}')
+        print(f'{skip4_0.shape=}')
+        print(f'{skip5_0.shape=}')
+        
+        x0_1 = upsample_and_concat(skip1_0, skip0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
+        x1_1 = upsample_and_concat(skip2_0, skip1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
+        x2_1 = upsample_and_concat(skip3_0, skip2_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
+        x3_1 = upsample_and_concat(skip4_0, skip3_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
+        x4_1 = upsample_and_concat(skip5_0, skip4_0, filters[4], dropout_rate[4], dropout_type[4], activation, kernel_initializer, unet_type)
+            
+        skip0_2 = x0_1
+        x0_2 = upsample_and_concat(x1_1, skip0_2, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)    
+        skip1_2 = Concatenate(axis=-1)([x1_1, skip1_0])
+        x1_2 = upsample_and_concat(x2_1, skip1_2, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
+        skip2_2 = Concatenate(axis=-1)([x2_1, skip2_0])
+        x2_2 = upsample_and_concat(x3_1, skip2_2, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
+        skip3_2 = Concatenate(axis=-1)([x3_1, skip3_0])
+        x3_2 = upsample_and_concat(x4_1, skip3_2, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
+        
+        skip0_3 = Concatenate(axis=-1)([x0_2, x0_1])
+        x0_3 = upsample_and_concat(x1_2, skip0_3, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
+        skip1_3 = Concatenate(axis=-1)([x1_2, x1_1, skip1_0])
+        x1_3 = upsample_and_concat(x2_2, skip1_3, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
+        skip2_3 = Concatenate(axis=-1)([x2_2, x2_1, skip2_0])
+        x2_3 = upsample_and_concat(x3_2, skip2_3, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
+        
+        skip0_4 = Concatenate(axis=-1)([x0_3, x0_2, x0_1])
+        x0_4 = upsample_and_concat(x1_3, skip0_4, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
+        skip1_4 = Concatenate(axis=-1)([x1_3, x1_2, x1_1, skip1_0])
+        x1_4 = upsample_and_concat(x2_3, skip1_4, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
+        
+        skip0_5 = Concatenate(axis=-1)([x0_4, x0_3, x0_2, x0_1])
+        x0_5 = upsample_and_concat(x1_4, skip0_5, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
     
     output_1 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_1)
     output_1 = Activation('softmax', name='output_1', dtype='float32')(output_1)
@@ -644,16 +682,20 @@ def Unet_plus(input_shape: tuple,
     output_4 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_4)
     output_4 = Activation('softmax', name='output_4', dtype='float32')(output_4)
     
-    Unet_pp_L4 = Model(inputs=x0_0, outputs=output_4, name='Unet_pp_L4')
+    output_5 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_5)
+    output_5 = Activation('softmax', name='output_5', dtype='float32')(output_5)
+    
+    Unet_pp_L5 = Model(inputs=x0_0, outputs=output_5, name='Unet_pp_L5')
     Unet_pp = Model(inputs=x0_0, outputs=[output_1,
                                           output_2,
                                           output_3,
-                                          output_4] , name='Unet_pp')
+                                          output_4,
+                                          output_5] , name='Unet_pp')
     
     if deep_supervision:
         model = Unet_pp
     else:
-        model = Unet_pp_L4
+        model = Unet_pp_L5
     
     return model
 
