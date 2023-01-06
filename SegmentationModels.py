@@ -250,10 +250,10 @@ def DeepLabV3plus(input_shape: tuple,
     
     depth = len(filters)
     
-    x0 = tf.keras.Input(shape=input_shape)
+    input_tensor = tf.keras.Input(shape=input_shape)
     
-    backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
-    Skip = backbone(x0, training=False)
+    backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+    Skip = backbone(input_tensor, training=False)
  
     # Bottleneck
     x = Skip[-1]
@@ -284,7 +284,7 @@ def DeepLabV3plus(input_shape: tuple,
 
     output = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x)
     output = Activation('softmax', name='output', dtype='float32')(output)
-    model = Model(inputs=x0, outputs=output, name=f'DeepLabV3plus')
+    model = Model(inputs=input_tensor, outputs=output, name=f'DeepLabV3plus')
     return model
 
 
@@ -317,11 +317,11 @@ def base_Unet(unet_type: str,
         dropout_type = [dropout_type] * depth
 
     # ---------------------------------------------------------------------------------------------------------------------------
-    x0 = tf.keras.Input(shape=input_shape)
+    input_tensor = tf.keras.Input(shape=input_shape)
     
     if backbone_name is None:
         # Εncoder
-        x, skip = downsampling_block(x0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
+        x, skip = downsampling_block(input_tensor, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
         Skip = [skip]
         for i in range(1, depth-1):
             x, skip = downsampling_block(x, filters[i], dropout_rate[i], dropout_type[i], activation, kernel_initializer, unet_type)
@@ -340,8 +340,8 @@ def base_Unet(unet_type: str,
         # but no skip connection from the top level (full spatial dimension)
         
         # Pre-trained Backbone as Encoder
-        backbone = get_backbone(backbone_name, input_tensor=x0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
-        Skip = backbone(x0, training=False)
+        backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+        Skip = backbone(input_tensor, training=False)
         
         # Bottleneck
         x = Skip[-1]
@@ -353,7 +353,7 @@ def base_Unet(unet_type: str,
         
     output = Conv2D(num_classes, kernel_size=(1,1), kernel_initializer=kernel_initializer)(x)
     output = Activation('softmax', name='output', dtype='float32')(output)
-    model = Model(inputs=x0, outputs=output, name=f'{unet_type}_U-net' if unet_type != 'normal' else 'U-net')
+    model = Model(inputs=input_tensor, outputs=output, name=f'{unet_type}_U-net' if unet_type != 'normal' else 'U-net')
     return model
 
               
@@ -544,8 +544,6 @@ def Unet_plus(input_shape: tuple,
               activation: str = 'relu',
               dropout_rate: float = 0.0, 
               dropout_type: str = 'normal',
-              scale_dropout: bool = True,
-              dropout_offset: float = 0.01,
               backbone_name = None,
               freeze_backbone = True,
               unfreeze_at = None,
@@ -575,95 +573,71 @@ def Unet_plus(input_shape: tuple,
         - `attention` (bool, optional): Whether to use attention modules. Defaults to False.
         - `kernel_initializer` (, optional): The kernel initializer for the Convolution layers. Defaults to HeNormal().
         
-
     Returns:
         tf.keras.Model: A keras Model with the U-net++ architecture.
-        
-        
+           
     References:
         - [UNet++: A Nested U-Net Architecture for Medical Image Segmentation](https://arxiv.org/abs/1807.10165)
     """
     
-    
     depth = len(filters)
-    
-    assert depth==5, f'Expected a list of filters with length : 5. Instead got length : {depth}.'
+    assert depth==6, f'Expected a list of filters with length : 5. Instead got length : {depth}.'
     
     if attention:
         unet_type = 'attention'
     else:
         unet_type = 'normal'
-       
-    offset = dropout_offset if scale_dropout else 0
-    
-    if isinstance(dropout_rate, (list, tuple)):
-        assert len(dropout_rate)== depth, 'dropout_rate length does not match model depth. The length of dropout_rate needs to match the length of filters if passed as a list or tuple'
-    else:
-        offset = dropout_offset if scale_dropout else 0
-        dropout_rate = [dropout_rate + offset*i for i in range(depth)]
-        
-    if isinstance(dropout_type, (list, tuple)):
-        assert len(dropout_type)==depth, 'dropout_type length does not match model depth. The length of dropout_type needs to match the length of filters if passed as a list or tuple'
-    else:
-        dropout_type = [dropout_type] * depth
         
     
-    x0_0 = tf.keras.Input(shape=input_shape)
+    input_tensor = tf.keras.Input(shape=input_shape)
 
     if backbone_name is None:
-        x1_0, skip1_0 = downsampling_block(x0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-        x2_0, skip2_0 = downsampling_block(x1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-        x3_0, skip3_0 = downsampling_block(x2_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
-        x4_0, skip4_0 = downsampling_block(x3_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
-        
-        print(f'{x1_0.shape=}, {skip1_0.shape=}')
-        print(f'{x2_0.shape=}, {skip2_0.shape=}')
-        print(f'{x3_0.shape=}, {skip3_0.shape=}')
-        print(f'{x4_0.shape=}, {skip4_0.shape=}')
-        
-        x4_0 = conv_block(x4_0, filters[4], dropout_rate[4], dropout_type[4], activation, kernel_initializer, unet_type)
-        print(f'after bottleneck: {x4_0.shape=}')
-    
+        x0_0, skip0_0 = downsampling_block(input_tensor, filters[0], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+        x1_0, skip1_0 = downsampling_block(x0_0, filters[1], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+        x2_0, skip2_0 = downsampling_block(x1_0, filters[2], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+        x3_0, skip3_0 = downsampling_block(x2_0, filters[3], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+        x4_0, skip4_0 = downsampling_block(x3_0, filters[4], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+        x5_0 = conv_block(x4_0, filters[5], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+        skip5_0 = x5_0
+
     else:
         # Pre-trained Backbone as Encoder
-        backbone = get_backbone(backbone_name, input_tensor=x0_0, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
-        Skip = backbone(x0_0, training=False)
-
-        # skip is the signal right before the downsampling
-        # x is the signal right after the downsampling
+        backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, depth=depth-1, unfreeze_at=unfreeze_at)
+        Skip = backbone(input_tensor, training=False)
+        
         Skip.insert(0, None)
         skip0_0, skip1_0, skip2_0, skip3_0, skip4_0, skip5_0 = Skip
         # skip0_0 is None
         
-        x0_1 = upsample_and_concat(skip1_0, skip0_0, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-        x1_1 = upsample_and_concat(skip2_0, skip1_0, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-        x2_1 = upsample_and_concat(skip3_0, skip2_0, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
-        x3_1 = upsample_and_concat(skip4_0, skip3_0, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
-        x4_1 = upsample_and_concat(skip5_0, skip4_0, filters[4], dropout_rate[4], dropout_type[4], activation, kernel_initializer, unet_type)
-            
-        skip0_2 = x0_1
-        x0_2 = upsample_and_concat(x1_1, skip0_2, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)    
-        skip1_2 = Concatenate(axis=-1)([x1_1, skip1_0])
-        x1_2 = upsample_and_concat(x2_1, skip1_2, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-        skip2_2 = Concatenate(axis=-1)([x2_1, skip2_0])
-        x2_2 = upsample_and_concat(x3_1, skip2_2, filters[2], dropout_rate[2], dropout_type[2], activation, kernel_initializer, unet_type)
-        skip3_2 = Concatenate(axis=-1)([x3_1, skip3_0])
-        x3_2 = upsample_and_concat(x4_1, skip3_2, filters[3], dropout_rate[3], dropout_type[3], activation, kernel_initializer, unet_type)
-        
-        skip0_3 = Concatenate(axis=-1)([x0_2, x0_1])
-        x0_3 = upsample_and_concat(x1_2, skip0_3, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-        skip1_3 = Concatenate(axis=-1)([x1_2, x1_1, skip1_0])
-        x1_3 = upsample_and_concat(x2_2, skip1_3, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-        skip2_3 = Concatenate(axis=-1)([x2_2, x2_1, skip2_0])
-        x2_3 = upsample_and_concat(x3_2, skip2_3, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-        
-        skip0_4 = Concatenate(axis=-1)([x0_3, x0_2, x0_1])
-        x0_4 = upsample_and_concat(x1_3, skip0_4, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
-        skip1_4 = Concatenate(axis=-1)([x1_3, x1_2, x1_1, skip1_0])
-        x1_4 = upsample_and_concat(x2_3, skip1_4, filters[1], dropout_rate[1], dropout_type[1], activation, kernel_initializer, unet_type)
-        
-        skip0_5 = Concatenate(axis=-1)([x0_4, x0_3, x0_2, x0_1])
-        x0_5 = upsample_and_concat(x1_4, skip0_5, filters[0], dropout_rate[0], dropout_type[0], activation, kernel_initializer, unet_type)
+    x0_1 = upsample_and_concat(skip1_0, skip0_0, filters[0], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    x1_1 = upsample_and_concat(skip2_0, skip1_0, filters[1], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    x2_1 = upsample_and_concat(skip3_0, skip2_0, filters[2], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    x3_1 = upsample_and_concat(skip4_0, skip3_0, filters[3], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    x4_1 = upsample_and_concat(skip5_0, skip4_0, filters[4], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    
+    skip0_2 = x0_1 if skip0_0 is None else Concatenate(axis=-1)([x0_1, skip0_0])
+    x0_2 = upsample_and_concat(x1_1, skip0_2, filters[0], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)    
+    skip1_2 = Concatenate(axis=-1)([x1_1, skip1_0])
+    x1_2 = upsample_and_concat(x2_1, skip1_2, filters[1], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    skip2_2 = Concatenate(axis=-1)([x2_1, skip2_0])
+    x2_2 = upsample_and_concat(x3_1, skip2_2, filters[2], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    skip3_2 = Concatenate(axis=-1)([x3_1, skip3_0])
+    x3_2 = upsample_and_concat(x4_1, skip3_2, filters[3], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    
+    skip0_3 = Concatenate(axis=-1)([x0_2, x0_1]) if skip0_0 is None else Concatenate(axis=-1)([x0_2, x0_1, skip0_0])
+    x0_3 = upsample_and_concat(x1_2, skip0_3, filters[0], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    skip1_3 = Concatenate(axis=-1)([x1_2, x1_1, skip1_0])
+    x1_3 = upsample_and_concat(x2_2, skip1_3, filters[1], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    skip2_3 = Concatenate(axis=-1)([x2_2, x2_1, skip2_0])
+    x2_3 = upsample_and_concat(x3_2, skip2_3, filters[2], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    
+    skip0_4 = Concatenate(axis=-1)([x0_3, x0_2, x0_1]) if skip0_0 is None else Concatenate(axis=-1)([x0_3, x0_2, x0_1, skip0_0])
+    x0_4 = upsample_and_concat(x1_3, skip0_4, filters[0], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    skip1_4 = Concatenate(axis=-1)([x1_3, x1_2, x1_1, skip1_0])
+    x1_4 = upsample_and_concat(x2_3, skip1_4, filters[1], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
+    
+    skip0_5 = Concatenate(axis=-1)([x0_4, x0_3, x0_2, x0_1]) if skip0_0 is None else Concatenate(axis=-1)([x0_4, x0_3, x0_2, x0_1, skip0_0])
+    x0_5 = upsample_and_concat(x1_4, skip0_5, filters[0], dropout_rate, dropout_type, activation, kernel_initializer, unet_type)
     
     output_1 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_1)
     output_1 = Activation('softmax', name='output_1', dtype='float32')(output_1)
@@ -680,12 +654,12 @@ def Unet_plus(input_shape: tuple,
     output_5 = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x0_5)
     output_5 = Activation('softmax', name='output_5', dtype='float32')(output_5)
     
-    Unet_pp_L5 = Model(inputs=x0_0, outputs=output_5, name='Unet_pp_L5')
-    Unet_pp = Model(inputs=x0_0, outputs=[output_1,
-                                          output_2,
-                                          output_3,
-                                          output_4,
-                                          output_5] , name='Unet_pp')
+    Unet_pp_L5 = Model(inputs=input_tensor, outputs=output_5, name='Unet_pp_L5')
+    Unet_pp = Model(inputs=input_tensor, outputs=[output_1,
+                                                  output_2,
+                                                  output_3,
+                                                  output_4,
+                                                  output_5] , name='Unet_pp')
     
     if deep_supervision:
         model = Unet_pp
@@ -707,24 +681,27 @@ class Unet_pp():
               activation: str = 'relu',
               dropout_rate: float = 0.0, 
               dropout_type: str = 'normal',
-              scale_dropout: bool = True,
-              dropout_offset: float = 0.01,
-              attention: bool = False,
-              kernel_initializer = HeNormal(42)):
+              backbone_name = None,
+              freeze_backbone = True,
+              unfreeze_at = None,
+              kernel_initializer = HeNormal(42),
+              attention: bool = False
+              ):
         
         self.depth = len(filters)
         
-        self.model = Unet_plus(input_shape,
-                                filters, 
-                                num_classes,
-                                activation,
-                                dropout_rate, 
-                                dropout_type,
-                                scale_dropout,
-                                dropout_offset,
-                                self.deep_supervision,
-                                attention,
-                                kernel_initializer)
+        self.model = Unet_plus(input_shape = filters,
+                                filters = filters, 
+                                num_classes = num_classes,
+                                activation = activation,
+                                dropout_rate = dropout_rate, 
+                                dropout_type = dropout_type,
+                                backbone_name = backbone_name,
+                                freeze_backbone = freeze_backbone,
+                                unfreeze_at = unfreeze_at,
+                                kernel_initializer = kernel_initializer,
+                                deep_supervision = self.deep_supervision,
+                                attention = attention)
     
     
     def load(self, path:str, load_weights_only=False):
