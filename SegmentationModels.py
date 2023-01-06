@@ -690,7 +690,7 @@ class Unet_pp():
         
         self.depth = len(filters)
         
-        self.model = Unet_plus(input_shape = filters,
+        self.model = Unet_plus(input_shape = input_shape,
                                 filters = filters, 
                                 num_classes = num_classes,
                                 activation = activation,
@@ -715,7 +715,8 @@ class Unet_pp():
             self.model.compile(loss={'output_1': loss,
                                      'output_2': loss,
                                      'output_3': loss,
-                                     'output_4': loss},
+                                     'output_4': loss,
+                                     'output_5': loss},
                                optimizer=optimizer,
                                metrics=metrics)
         else:
