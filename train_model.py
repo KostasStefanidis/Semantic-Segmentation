@@ -110,7 +110,7 @@ loss = loss_func()
 
 lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     initial_learning_rate=initial_lr,
-    decay_steps=30*992,
+    decay_steps=25*992,
     end_learning_rate=end_lr,
     power=2,
     cycle=False,

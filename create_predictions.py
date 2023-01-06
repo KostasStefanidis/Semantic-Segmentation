@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
-parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'DeepLabV3plus'])
+parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'Unet_plus', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
