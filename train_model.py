@@ -61,35 +61,40 @@ if NUM_CLASSES==34:
 else:
     ignore_class = 19
 
+# ---------------------------Create Dataset stream--------------------------------
+train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+
+val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+
+steps_per_epoch = train_ds.cardinality().numpy()
+
 # ---------------------------------------CALLBACKS-------------------------------------------
 if BACKBONE is None:
     save_best_only = True
+    save_freq = 'epoch'
 else:
     save_best_only = False
+    save_freq = int(EPOCHS*steps_per_epoch) # save the model only at the last epoch of the main training
 
 checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
 model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                             save_weights_only=False,
                                             monitor='val_MeanIoU',
                                             mode='max',
+                                            save_freq=save_freq, 
                                             save_best_only=save_best_only,
                                             verbose=0)
 
 log_dir = f'Tensorboard_logs/{MODEL_TYPE}/{MODEL_NAME}'
 tensorboard_callback = TensorBoard(log_dir=log_dir,
-                                histogram_freq=0,
-                                write_graph=False,
-                                write_steps_per_second=False)
+                                   histogram_freq=0,
+                                   write_graph=False,
+                                   write_steps_per_second=False)
 
 callbacks = [model_checkpoint_callback, tensorboard_callback]
 # -------------------------------------------------------------------------------------------
-
-# Create Dataset stream
-train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
-
-val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 # Instantiate Model
 model_function = eval(MODEL_TYPE)
@@ -135,8 +140,7 @@ history = model.fit(train_ds,
 # FINE TUNE MODEL
 if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
-    #* prevent OOM
-    #* Re-define the dataset streams with new batch size
+    #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
     train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
@@ -156,15 +160,15 @@ if BACKBONE is not None:
     
     # instantiate model again with the last part of the encoder (Backbone) un-frozen
     model = model_function(input_shape=INPUT_SHAPE,
-                            filters=FILTERS,
-                            num_classes=NUM_CLASSES,
-                            activation=ACTIVATION,
-                            dropout_rate=DROPOUT_RATE,
-                            dropout_type='normal',
-                            backbone_name=BACKBONE,
-                            freeze_backbone=False,
-                            unfreeze_at='block6a_expand_activation'
-                            )
+                           filters=FILTERS,
+                           num_classes=NUM_CLASSES,
+                           activation=ACTIVATION,
+                           dropout_rate=DROPOUT_RATE,
+                           dropout_type='normal',
+                           backbone_name=BACKBONE,
+                           freeze_backbone=False,
+                           unfreeze_at='block6a_expand_activation'
+                           )
     
     # load the saved weights into the model to fine tune the high level features of the feature extractor
     # Fine tune the encoder network with a lower learning rate
