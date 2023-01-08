@@ -1,7 +1,5 @@
 import tensorflow as tf
 from DatasetUtils import Dataset
-from keras import backend as K
-from SegmentationModels import Residual_Unet
 import os
 from argparse import ArgumentParser
 
