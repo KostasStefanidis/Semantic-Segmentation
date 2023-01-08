@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras.models import Sequential
 from tensorflow import Tensor
 import random
-from keras.layers import RandomFlip, RandomBrightness, RandomContrast
+from keras.layers import RandomFlip, RandomBrightness, RandomContrast, RandomRotation, RandomZoom
 import tensorflow_addons as tfa
 from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
 from keras.applications import resnet, resnet_v2, densenet, efficientnet
@@ -76,9 +76,9 @@ class Augment(tf.keras.layers.Layer):
         model = Sequential()
         model.add(RandomFlip("horizontal", seed=seed))
         if mode=='image':
-            model.add(RandomBrightness(0.1, seed=seed))
+            model.add(RandomBrightness(0.15, seed=seed))
             model.add(RandomContrast(0.2, seed=seed))
-            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=11))        
+            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=9))        
         return model
 
 
