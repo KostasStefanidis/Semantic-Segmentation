@@ -48,6 +48,8 @@ if BACKBONE == 'None':
     BACKBONE = None
 elif 'ResNet' in BACKBONE:
     PREPROCESSING = 'ResNet'
+elif 'ResNet' in BACKBONE and 'V2' in BACKBONE:
+    PREPROCESSING = 'ResNetV2'
 elif 'EfficientNet' in BACKBONE:
     PREPROCESSING = 'EfficientNet'
 elif 'EfficientNetV2' in BACKBONE:
@@ -81,7 +83,7 @@ else:
 checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
 model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                             save_weights_only=False,
-                                            monitor='val_MeanIoU',
+                                            monitor='val_MeanIoU', #TODO : change to val_MeanIoU_ignore
                                             mode='max',
                                             save_freq=save_freq, 
                                             save_best_only=save_best_only,
@@ -115,7 +117,7 @@ loss = loss_func()
 
 lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     initial_learning_rate=initial_lr,
-    decay_steps=25*992,
+    decay_steps=20*992,
     end_learning_rate=end_lr,
     power=2,
     cycle=False,
