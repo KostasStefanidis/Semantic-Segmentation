@@ -101,8 +101,8 @@ class Dataset():
         
         assert split in ['train', 'val', 'test'], f'The split arguement must one of: "train", "val", "test", instead the value passed was {split}'
         assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value passed was {num_classes}'
-        assert preprocessing in ['default', 'ResNet', 'EfficientNet', 'EfficientNetV2'], \
-            f'The preprocessing arguement must one of: "default", "ResNet", "EfficientNet", "EfficientNetV2", instead the value passed was {preprocessing}'
+        assert preprocessing in ['default', 'ResNet', "ResNetV2", 'EfficientNet', 'EfficientNetV2'], \
+            f'The preprocessing arguement must one of: "default", "ResNet", "ResNetV2", "EfficientNet", "EfficientNetV2", instead the value passed was {preprocessing}'
         
         self.num_classes = num_classes
         self.split = split
@@ -188,9 +188,9 @@ class Dataset():
     
     def preprocess_image(self, image: Tensor):
         # Layer for normalizing input image
-        normalization_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
+        default_normalization_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
         preprocessing_options = {
-            'default': normalization_layer,
+            'default': default_normalization_layer,
             'ResNet': resnet.preprocess_input,
             'ResNetV2' : resnet_v2.preprocess_input,
             'EfficientNet' : efficientnet.preprocess_input,
