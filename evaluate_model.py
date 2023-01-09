@@ -89,7 +89,7 @@ model = tf.keras.models.load_model(model_filepath, compile=False)
 model.compile(loss=loss, metrics=metrics)
 
 print('Model Evaluation')
-score = model.evaluate(val_ds, verbose=2)
+score = model.evaluate(val_ds, verbose=1)
 print()
 print(model.summary())
 
