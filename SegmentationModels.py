@@ -155,9 +155,6 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
     'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation')
     }
     
-    # EfficientNetV2S after downsampling outputs
-    # stem_conv(), block2a_expand_conv, block3a_expand_conv, block4a_dwconv2, block6a_dwconv2, 
-    
     layer_names = backbone_layers[backbone_name]
     
     backbone_func = eval(backbone_name)

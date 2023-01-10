@@ -40,6 +40,7 @@ DROPOUT_RATE = args.dropout
 FINAL_EPOCHS = 60
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
+AUGMENT = True
 initial_lr = 0.001
 end_lr = 0.0001
 
@@ -144,7 +145,7 @@ if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=AUGMENT)
 
     val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
     val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
