@@ -5,7 +5,7 @@ import random
 from keras.layers import RandomFlip, RandomBrightness, RandomContrast
 import tensorflow_addons as tfa
 from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
-from keras.applications import resnet, resnet_v2, densenet, efficientnet
+from keras.applications import resnet, resnet_v2, efficientnet
 from keras.applications import efficientnet_v2
 
 # dictionary that contains the mapping of the class numbers to rgb color values
@@ -78,7 +78,7 @@ class Augment(tf.keras.layers.Layer):
         if mode=='image':
             model.add(RandomBrightness(0.1, seed=seed))
             model.add(RandomContrast(0.2, seed=seed))
-            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=11))        
+            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=9))        
         return model
 
 
