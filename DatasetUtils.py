@@ -76,9 +76,9 @@ class Augment(tf.keras.layers.Layer):
         model = Sequential()
         model.add(RandomFlip("horizontal", seed=seed))
         if mode=='image':
-            model.add(RandomBrightness(0.1, seed=seed))
-            model.add(RandomContrast(0.2, seed=seed))
-            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=9))        
+            model.add(RandomBrightness(0.15, seed=seed))
+            model.add(RandomContrast(0.25, seed=seed))
+            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=11))        
         return model
 
 
@@ -107,28 +107,34 @@ class Dataset():
         self.num_classes = num_classes
         self.split = split
         self.preprocessing = preprocessing
+        self.mode = mode
         self.shuffle = shuffle
         
         self.ignore_ids = [-1,0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
         self.eval_ids =   [7,8,11,12,13,17,19,20,21,22,23,24,25,26,27,28,31,32,33]
         self.train_ids =  [0,1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18]
         
-        if mode == 'fine':
+        if self.mode == 'fine':
             self.img_path = 'leftImg8bit_trainvaltest/leftImg8bit/'
             self.label_path = 'gtFine_trainvaltest/gtFine/'
-        elif mode == 'coarse':
+        elif self.mode == 'coarse':
             self.img_path = 'leftImg8bit/train_extra/'
             self.label_path = 'gtCoarse/train_extra/'
         
         self.img_suffix = '*.png'
-        self.label_suffix = '*_gtFine_labelIds.png'
-        
+        self.label_suffix = f'*_gt{self.mode.capitalize()}_labelIds.png'
+    
     
     def construct_path(self, data_path: str, subfolder: str):
         if subfolder == 'all':
             subfolder = '*'
-        image_path = data_path + self.img_path + self.split + '/' + subfolder + '/' + self.img_suffix
-        label_path = data_path + self.label_path + self.split + '/' + subfolder + '/' + self.label_suffix
+            
+        if self.mode == 'fine':
+            image_path = data_path + self.img_path + self.split + '/' + subfolder + '/' + self.img_suffix
+            label_path = data_path + self.label_path + self.split + '/' + subfolder + '/' + self.label_suffix
+        elif self.mode == 'coarse':
+            image_path = data_path + self.img_path + subfolder + '/' + self.img_suffix
+            label_path = data_path + self.label_path + subfolder + '/' + self.label_suffix
         return image_path, label_path
     
     
