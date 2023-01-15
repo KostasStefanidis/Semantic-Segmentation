@@ -145,10 +145,10 @@ if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=AUGMENT)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=AUGMENT)
 
     val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'

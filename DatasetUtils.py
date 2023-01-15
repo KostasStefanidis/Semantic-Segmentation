@@ -83,7 +83,7 @@ class Augment(tf.keras.layers.Layer):
 
 
 class Dataset():
-    def __init__(self, num_classes: int, split:str, preprocessing='default', shuffle=True):
+    def __init__(self, num_classes: int, split:str, preprocessing='default', mode='fine', shuffle=True):
         """
         Instantiate a Dataset object. Next call the `create()` method to create a pipeline that contains 
         parsing, decoding and preprossecing of the dataset images which yields, image and ground truth image
@@ -113,11 +113,16 @@ class Dataset():
         self.eval_ids =   [7,8,11,12,13,17,19,20,21,22,23,24,25,26,27,28,31,32,33]
         self.train_ids =  [0,1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18]
         
-        self.img_path = 'leftImg8bit_trainvaltest/leftImg8bit/'
-        self.label_path = 'gtFine_trainvaltest/gtFine/'
+        if mode == 'fine':
+            self.img_path = 'leftImg8bit_trainvaltest/leftImg8bit/'
+            self.label_path = 'gtFine_trainvaltest/gtFine/'
+        elif mode == 'coarse':
+            self.img_path = 'leftImg8bit/train_extra/'
+            self.label_path = 'gtCoarse/train_extra/'
+        
         self.img_suffix = '*.png'
         self.label_suffix = '*_gtFine_labelIds.png'
-    
+        
     
     def construct_path(self, data_path: str, subfolder: str):
         if subfolder == 'all':

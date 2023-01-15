@@ -91,7 +91,7 @@ model.compile(loss=loss, metrics=metrics)
 print('Model Evaluation')
 score = model.evaluate(val_ds, verbose=2)
 print()
-print(model.summary())
+model.summary()
 
 confusion_matrix = mean_iou.get_confusion_matrix()
 plt.rcParams["figure.figsize"] = (25,20)
