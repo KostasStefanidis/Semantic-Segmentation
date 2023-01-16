@@ -68,10 +68,7 @@ class FocalTverskyLoss(Loss):
         tversky_vector = tf.math.divide_no_nan(intersection, denominator)
         
         if self.ignore_class is not None and self.class_weights is not None:
-            raise ValueError('A value was given for both class_weights and ignore_class. Pass a value to ignore_class \
-                to use class_weights equal to 1 for all classes and ignore the contribution of certain classes in the \
-                calculation of the loss value. Otherwise if you want to use custom weights and ignore some classes make sure\
-                their weights are 0 and ignore_class is None')
+            raise ValueError('A value was given for both class_weights and ignore_class. Pass a value only for one of them!')
         
         if self.ignore_class is not None:
             self.class_weights = [1]*tversky_vector.shape[-1]
@@ -92,7 +89,7 @@ class FocalTverskyLoss(Loss):
 
 
 class TverskyLoss(FocalTverskyLoss):
-    def __init__(self, beta=0.7, class_weights=None):
+    def __init__(self, beta=0.7, ignore_class=None, class_weights=None):
         '''
         Uses the Tversky similarity index which is a generalization of the Dice score which allows for flexibility
         in balancing False Positives and False Negatives. With highly imbalanced data and small ROIs, False 
@@ -110,11 +107,11 @@ class TverskyLoss(FocalTverskyLoss):
         References:
             - [Tversky loss function for image segmentation using 3D fully convolutional deep networks](https://arxiv.org/abs/1706.05721)
         '''
-        super().__init__(gamma=1.0, beta=beta, class_weights=class_weights)
+        super().__init__(gamma=1.0, beta=beta, ignore_class=ignore_class, class_weights=class_weights)
 
 
 class DiceLoss(TverskyLoss):
-    def __init__(self, class_weights=None):
+    def __init__(self, ignore_class=None, class_weights=None):
         """
         In a multi-class scenario, when provided with probability maps on one end and one-hot encoded labels on the
         other, effectively performs multiple two-class problems. `Dice Loss` is computed by calculating the Dice
@@ -131,7 +128,7 @@ class DiceLoss(TverskyLoss):
         References:
             - [Generalised Dice overlap as a deep learning loss function for highly unbalanced segmentations](https://arxiv.org/abs/1707.03237)
         """
-        super().__init__(beta=0.5, class_weights=class_weights)
+        super().__init__(beta=0.5, ignore_class=ignore_class, class_weights=class_weights)
 
 
 class IoULoss(Loss):
@@ -159,7 +156,7 @@ class IoULoss(Loss):
 
 
 class HybridLoss(DiceLoss):
-    def __init__(self, alpha1=1.0, alpha2=1.0, class_weights=None):
+    def __init__(self, alpha1=1.0, alpha2=1.0, ignore_class=None, class_weights=None):
         """
         Computes a scalar loss value with a formula `Loss = alpha1 * DiceLoss + alpha2 * CrossentropyLoss`.
         The Dice Loss is computed by calculating the Dice score for each individual class, thus creating a 
@@ -179,7 +176,7 @@ class HybridLoss(DiceLoss):
                 as the mean value of the dice score of each class, otherwise it is computed as the weighted average 
                 of each individual dice score. Defaults to `None`.
         """
-        super().__init__(class_weights=class_weights)
+        super().__init__(ignore_class=ignore_class, class_weights=class_weights)
         self.alpha1 = alpha1
         self.alpha2 = alpha2
 
@@ -188,7 +185,7 @@ class HybridLoss(DiceLoss):
 
 
 class FocalHybridLoss(FocalTverskyLoss):
-    def __init__(self, gamma1=4/3, gamma2=2, beta=0.5, alpha1=1.0, alpha2=1.0, class_weights=None):
+    def __init__(self, gamma1=4/3, gamma2=2, beta=0.5, alpha1=1.0, alpha2=1.0, ignore_class=None, class_weights=None):
         """
         Focal Hybrid Loss is Hybrid Loss variant with extra focal parameters. In Focal Hybrid Loss, Dice Loss is
         replaced by Focal Tversky Loss and Crossentropy Loss is replaced by Focal Crossentropy Loss.
@@ -209,7 +206,7 @@ class FocalHybridLoss(FocalTverskyLoss):
         
         assert gamma1!=0, 'gamma1 must not be equal to 0'
         
-        super().__init__(gamma=gamma1, beta=beta, class_weights=class_weights)
+        super().__init__(gamma=gamma1, beta=beta, ignore_class=ignore_class, class_weights=class_weights)
         self.gamma2 = gamma2
         self.alpha1 = alpha1
         self.alpha2 = alpha2
