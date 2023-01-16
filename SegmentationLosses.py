@@ -71,21 +71,34 @@ class FocalTverskyLoss(Loss):
             raise ValueError('A value was given for both class_weights and ignore_class. Pass a value only for one of them!')
         
         if self.ignore_class is not None:
-            self.class_weights = [1]*tversky_vector.shape[-1]
-            self.class_weights[self.ignore_class] = 0
+            class_weights = [1]*tversky_vector.shape[-1]
+            class_weights[self.ignore_class] = 0
+        else:
+            class_weights = None
         
         if self.class_weights is not None:
             class_weights = tf.constant(self.class_weights, dtype=tversky_vector.dtype)
-            tversky_vector = tversky_vector * class_weights  
-            valid_mask = tf.reshape(tf.where(class_weights), [-1])
-            tversky_vector = tf.gather(tversky_vector, valid_mask, axis=-1)
-        
-        tversky_loss_vector = 1 - tversky_vector
+        else:
+            class_weights = None
+            
+        weighted_tversky_vector = self.apply_class_weights(tversky_vector, class_weights)
+        tversky_loss_vector = 1 - weighted_tversky_vector
         # raise the tversky loss of each class to the power of 1/gamma
         focal_tversky_loss_vector = tf.pow(tversky_loss_vector, 1./self.gamma)
         
         # return the mean of the loss vector and produce a scalar loss value
         return tf.reduce_mean(focal_tversky_loss_vector, axis=-1)
+    
+    
+    def apply_class_weights(self, tensor, class_weights):
+        if class_weights is None:
+            pass
+        else:
+            tensor = tensor * class_weights
+            valid_mask = tf.reshape(tf.where(class_weights), [-1])
+            tensor = tf.gather(tensor, valid_mask, axis=-1)
+            
+        return tensor
 
 
 class TverskyLoss(FocalTverskyLoss):
