@@ -4,11 +4,10 @@ from keras.losses import categorical_crossentropy
 
 
 def focal_crossentropy(y_true, y_pred, gamma=2):
-    """_summary_
-
+    """
     Args:
-        y_true (_type_): The ground truth tensor.
-        y_pred (_type_): The predicted output of the network.
+        y_true: The ground truth tensor.
+        y_pred: The predicted output of the network.
         gamma (int, optional): The focal parameter. Defaults to 2.
 
     Returns:
@@ -23,7 +22,7 @@ def focal_crossentropy(y_true, y_pred, gamma=2):
 
 
 class FocalTverskyLoss(Loss):
-    def __init__(self, gamma=4/3, beta=0.7, class_weights=None):
+    def __init__(self, gamma=4/3, beta=0.7, ignore_class=None, class_weights=None):
         """
         Generalization of the Tversky Loss. Computes a Loss vector using the Tversky similarity index for each individual
         class and then the focal parameter is applied raising each Loss value to the power of `1/gamma` thus making classes
@@ -34,7 +33,7 @@ class FocalTverskyLoss(Loss):
         When `gamma = 1` and `beta = 0.5` the FTL simplifies to DL (Dice Loss)
 
         Args:
-            - `gamma` (_type_, optional): When `gamma = 1` the FTL simplifies to TL (Tversky Loss). Defaults to `4/3`.
+            - `gamma` (float, optional): When `gamma = 1` the FTL simplifies to TL (Tversky Loss). Defaults to `4/3`.
             - `beta` (float, optional): Value for weighing false positives. False negatives are weighted by `1 - beta`.
                 When `gamma = 1` and `beta = 0.5` the FTL simplifies to DL (Dice Loss). Defaults to `0.7`.
             - `class_weights` (list, optional): Class weights used for weighing the contribution of the tversky score 
@@ -48,17 +47,19 @@ class FocalTverskyLoss(Loss):
         super().__init__()
         self.gamma = gamma
         self.beta = beta
+        self.ignore_class = ignore_class    
         self.class_weights = class_weights
 
 
-    def call(self, y_true, y_pred):
-        ''' 
+    def call(self, y_true:tf.Tensor, y_pred:tf.Tensor):
+        '''
         Tensor must have a shape of : `[batch_size, height, width, num_classes]`.
-        Calculate the score over the spatial dimensions height and width and subtract it from 1.
+        Calculate the score over the spatial dimensions (height and width) and subtract it from 1.
         -> `[batch_size, num_classes]` then take the mean along the channel axis (last axis)
         
         Averaging over the batch dimension is done automatically by tensorflow.
         '''
+        
         intersection = tf.reduce_sum(y_pred * y_true, axis=[1,2])
         false_positives = tf.reduce_sum((1 - y_true) * y_pred, axis=[1,2])
         false_negatives = tf.reduce_sum(y_true * (1 - y_pred), axis=[1,2])
@@ -66,8 +67,21 @@ class FocalTverskyLoss(Loss):
         denominator =  intersection + self.beta * false_positives + (1 - self.beta) * false_negatives
         tversky_vector = tf.math.divide_no_nan(intersection, denominator)
         
+        if self.ignore_class is not None and self.class_weights is not None:
+            raise ValueError('A value was given for both class_weights and ignore_class. Pass a value to ignore_class \
+                to use class_weights equal to 1 for all classes and ignore the contribution of certain classes in the \
+                calculation of the loss value. Otherwise if you want to use custom weights and ignore some classes make sure\
+                their weights are 0 and ignore_class is None')
+        
+        if self.ignore_class is not None:
+            self.class_weights = [1]*tversky_vector.shape[-1]
+            self.class_weights[self.ignore_class] = 0
+        
         if self.class_weights is not None:
-            tversky_vector = tversky_vector * self.class_weights
+            class_weights = tf.constant(self.class_weights, dtype=tversky_vector.dtype)
+            tversky_vector = tversky_vector * class_weights  
+            valid_mask = tf.reshape(tf.where(class_weights), [-1])
+            tversky_vector = tf.gather(tversky_vector, valid_mask, axis=-1)
         
         tversky_loss_vector = 1 - tversky_vector
         # raise the tversky loss of each class to the power of 1/gamma
