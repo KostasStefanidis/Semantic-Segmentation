@@ -22,7 +22,7 @@ def focal_crossentropy(y_true, y_pred, gamma=2):
 
 
 class FocalTverskyLoss(Loss):
-    def __init__(self, gamma=4/3, beta=0.7, ignore_class=None, class_weights=None):
+    def __init__(self, gamma=4/3, beta=0.7, ignore_class:int=None, class_weights=None):
         """
         Generalization of the Tversky Loss. Computes a Loss vector using the Tversky similarity index for each individual
         class and then the focal parameter is applied raising each Loss value to the power of `1/gamma` thus making classes
@@ -36,6 +36,7 @@ class FocalTverskyLoss(Loss):
             - `gamma` (float, optional): When `gamma = 1` the FTL simplifies to TL (Tversky Loss). Defaults to `4/3`.
             - `beta` (float, optional): Value for weighing false positives. False negatives are weighted by `1 - beta`.
                 When `gamma = 1` and `beta = 0.5` the FTL simplifies to DL (Dice Loss). Defaults to `0.7`.
+            - `ignore_class` (int, optional): The ID of a class to be ignored during computation of the loss function.
             - `class_weights` (list, optional): Class weights used for weighing the contribution of the tversky score 
                 of each class to the overall tversky score. If this value is `None` the overall tversky score is computed 
                 as the mean value of the tversky score of each class, otherwise it is computed as the weighted average 
@@ -111,7 +112,8 @@ class TverskyLoss(FocalTverskyLoss):
         When `beta = 0.5` Tversky Loss simplifies to Dice Loss.
         
         Args:
-            - `beta` (float, optional): Value for weighing false positives. False negatives are weighted by `1 - beta`. 
+            - `beta` (float, optional): Value for weighing false positives. False negatives are weighted by `1 - beta`.
+            - `ignore_class` (int, optional): The ID of a class to be ignored during computation of the loss function.
             - `class_weights` (list, optional): Class weights used for weighing the contribution of the tversky score 
                 of each class to the overall tversky score. If this value is `None` the overall tversky score is computed 
                 as the mean value of the tversky score of each class, otherwise it is computed as the weighted average 
@@ -148,6 +150,7 @@ class IoULoss(Loss):
     def __init__(self, class_weights=None):
         """
         Args:
+            - `ignore_class` (int, optional): The ID of a class to be ignored during computation of the loss function.
             - `class_weights` (list, optional): Class weights used for weighing the contribution of the IoU score 
                 of each class to the overall IoU score. If this value is `None` the overall IoU score is computed 
                 as the mean value of the IoU score of each class, otherwise it is computed as the weighted average 
@@ -184,6 +187,7 @@ class HybridLoss(DiceLoss):
                 loss value. Defaults to 1.0.
             - `alpha2` (float, optional): Value for weighing the contribution of the Crossentropy loss to the 
                 overall loss value. Defaults to 1.0.
+            - `ignore_class` (int, optional): The ID of a class to be ignored during computation of the loss function.
             - `class_weights` (list, optional): Class weights used for weighing the contribution of the dice score 
                 of each class to the overall dice score. If this value is `None` the overall dice score is computed 
                 as the mean value of the dice score of each class, otherwise it is computed as the weighted average 
@@ -211,6 +215,7 @@ class FocalHybridLoss(FocalTverskyLoss):
                 loss value. Defaults to 1.0.
             - `alpha2` (float, optional): Value for weighing the contribution of the Crossentropy loss to the 
                 overall loss value. Defaults to 1.0.
+            - `ignore_class` (int, optional): The ID of a class to be ignored during computation of the loss function.
             - `class_weights` (list, optional): Class weights used for weighing the contribution of the tversky score 
                 of each class to the overall tversky score. If this value is `None` the overall tversky score is computed 
                 as the mean value of the tversky score of each class, otherwise it is computed as the weighted average 
