@@ -120,6 +120,9 @@ class Dataset():
         elif self.mode == 'coarse':
             self.img_path = 'leftImg8bit/train_extra/'
             self.label_path = 'gtCoarse/train_extra/'
+        elif self.mode == 'video':
+            self.img_path = 'demoVideo/'
+            self.label_path = 'gtFine_trainvaltest/gtFine/'
         
         self.img_suffix = '*.png'
         self.label_suffix = f'*_gt{self.mode.capitalize()}_labelIds.png'
@@ -135,6 +138,9 @@ class Dataset():
         elif self.mode == 'coarse':
             image_path = data_path + self.img_path + subfolder + '/' + self.img_suffix
             label_path = data_path + self.label_path + subfolder + '/' + self.label_suffix
+        elif self.mode == 'video':
+            image_path = data_path + self.img_path + subfolder + '/' + self.img_suffix
+            label_path = data_path + self.label_path + self.split + '/' + '*' + '/' + '*_gtFine_labelIds.png'
         return image_path, label_path
     
     
