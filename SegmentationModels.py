@@ -9,14 +9,72 @@ from keras.layers import Conv2D, Conv2DTranspose, Concatenate, Dense
 from keras.layers import Dropout, SpatialDropout2D
 from keras.layers import MaxPooling2D, UpSampling2D
 from keras.layers import BatchNormalization, Activation
+from keras.applications.resnet import ResNet50,ResNet101,ResNet152
+from keras.applications.resnet_v2 import ResNet50V2,ResNet101V2,ResNet152V2
+from keras.applications.mobilenet import MobileNet
+from keras.applications.mobilenet_v2 import MobileNetV2
+from keras.applications.mobilenet_v3 import MobileNetV3Small, MobileNetV3Large
+# from keras.applications.regnet import R
 from keras.applications.efficientnet import EfficientNetB0, EfficientNetB1, EfficientNetB2
 from keras.applications.efficientnet import EfficientNetB3, EfficientNetB4, EfficientNetB5
 from keras.applications.efficientnet import EfficientNetB6, EfficientNetB7
 from keras.applications.efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2
 from keras.applications.efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
-from keras.applications.resnet import ResNet50,ResNet101,ResNet152
-from keras.applications.resnet_v2 import ResNet50V2,ResNet101V2,ResNet152V2
 from warnings import warn
+
+
+def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, depth: int, unfreeze_at: str) -> Model:    
+    backbone_layers = {
+    'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
+    'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
+    'ResNet152': ('conv1_relu', 'conv2_block3_out', 'conv3_block8_out', 'conv4_block36_out', 'conv5_block3_out'),
+    'ResNet50V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block6_1_relu', 'post_relu'),
+    'ResNet101V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block23_1_relu', 'post_relu'),
+    'ResNet152V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block8_1_relu', 'conv4_block36_1_relu', 'post_relu'),
+    'MobileNet' : ('conv_pw_1_relu', 'conv_pw_3_relu', 'conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu'),
+    'MobileNetV2' : ('block_1_expand_relu', 'block_3_expand_relu', 'block_6_expand_relu', 'block_13_expand_relu', 'out_relu'),
+    'MobileNetV3Small' : ('multiply', 're_lu_3', 'multiply_1', 'multiply_11', 'multiply_17'),
+    'MobileNetV3Large' : ('re_lu_2', 're_lu_6', 'multiply_1', 'multiply_13', 'multiply_19'),
+    'EfficientNetB0': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB1': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB2': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB3': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB4': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB5': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB6': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetB7': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2B2': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2B3': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2S' : ('block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2M' : ('block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+    'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation')
+    }
+    
+    layer_names = backbone_layers[backbone_name]
+    
+    backbone_func = eval(backbone_name)
+    backbone_ = backbone_func(include_top=False,
+                              weights='imagenet',
+                              input_tensor=input_tensor,
+                              pooling=None)
+
+    X_skip = []
+    # get the output of intermediate backbone layers to use them as skip connections
+    for i in range(depth):
+        X_skip.append(backbone_.get_layer(layer_names[i]).output)
+        
+    backbone = Model(inputs=input_tensor, outputs=X_skip, name=f'{backbone_name}_backbone')
+    
+    if freeze_backbone:
+        backbone.trainable = False
+    elif unfreeze_at is not None:
+        layer_dict = {layer.name: i for i,layer in enumerate(backbone.layers)}
+        unfreeze_index = layer_dict[unfreeze_at]
+        for layer in backbone.layers[:unfreeze_index]:
+            layer.trainable = False
+    return backbone
 
 
 def dropout_layer(input_tensor: Tensor, dropout_type: str, dropout_rate: float) -> Tensor:
@@ -128,56 +186,6 @@ def upsample_and_concat(input_tensor: Tensor,
     
     x = conv_block(up, filters, dropout_rate, dropout_type, activation, kernel_initializer, unet_type)  
     return x
-
-
-def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, depth: int, unfreeze_at: str) -> Model:    
-    backbone_layers = {
-    'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
-    'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
-    'ResNet152': ('conv1_relu', 'conv2_block3_out', 'conv3_block8_out', 'conv4_block36_out', 'conv5_block3_out'),
-    'ResNet50V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block6_1_relu', 'post_relu'),
-    'ResNet101V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block23_1_relu', 'post_relu'),
-    'ResNet152V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block8_1_relu', 'conv4_block36_1_relu', 'post_relu'),
-    'EfficientNetB0': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB1': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB2': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB3': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB4': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB5': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB6': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB7': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B2': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B3': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2S' : ('block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2M' : ('block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation')
-    }
-    
-    layer_names = backbone_layers[backbone_name]
-    
-    backbone_func = eval(backbone_name)
-    backbone_ = backbone_func(include_top=False,
-                            weights='imagenet',
-                            input_tensor=input_tensor,
-                            pooling=None)
-
-    X_skip = []
-    # get the output of intermediate backbone layers to use them as skip connections
-    for i in range(depth):
-        X_skip.append(backbone_.get_layer(layer_names[i]).output)
-        
-    backbone = Model(inputs=input_tensor, outputs=X_skip, name=f'{backbone_name}_backbone')
-    
-    if freeze_backbone:
-        backbone.trainable = False
-    elif unfreeze_at is not None:
-        layer_dict = {layer.name: i for i,layer in enumerate(backbone.layers)}
-        unfreeze_index = layer_dict[unfreeze_at]
-        for layer in backbone.layers[:unfreeze_index]:
-            layer.trainable = False
-    return backbone
 
 
 def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dropout_type, dropout_rate, kernel_initializer):
