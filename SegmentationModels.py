@@ -23,7 +23,7 @@ from keras.applications.efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S
 from warnings import warn
 
 
-def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, depth: int, unfreeze_at: str) -> Model:    
+def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, unfreeze_at: str, depth: int = None) -> Model:    
     backbone_layers = {
     'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
     'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
@@ -60,6 +60,9 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
                               input_tensor=input_tensor,
                               pooling=None)
 
+    if depth is None:
+        depth = len(layer_names)
+    
     X_skip = []
     # get the output of intermediate backbone layers to use them as skip connections
     for i in range(depth):
@@ -213,9 +216,15 @@ def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dropou
     return x
 
 
+def _segmentation_head(input_tensor:Tensor, num_classes:int, output_activation='softmax', kernel_initializer=None):
+    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(input_tensor)
+    return Activation(output_activation, name='output_activation', dtype='float32')(output)
+
+
 def DeepLabV3plus(input_shape: tuple,
-                  filters: tuple,
+                  filters: tuple, # not needed
                   num_classes: int,
+                  output_stride:int = 32,
                   activation: str = 'relu', 
                   dropout_rate = 0.0,
                   dropout_type = 'normal',
@@ -252,14 +261,13 @@ def DeepLabV3plus(input_shape: tuple,
     References:
         - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611)
     """
-    
-    depth = len(filters)
+    final_upsampling_factor = int(output_stride / 4)
     
     input_tensor = tf.keras.Input(shape=input_shape)
     
-    backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+    backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, unfreeze_at=unfreeze_at)
     Skip = backbone(input_tensor, training=False)
- 
+
     # Bottleneck
     x = Skip[-1]
     
@@ -285,10 +293,9 @@ def DeepLabV3plus(input_shape: tuple,
     x = Activation(activation)(x)
     x = dropout_layer(x, dropout_type, dropout_rate)
     
-    x = UpSampling2D(size=8, interpolation='bilinear')(x)
+    x = UpSampling2D(size=final_upsampling_factor, interpolation='bilinear')(x)
 
-    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=kernel_initializer)(x)
-    output = Activation('softmax', name='output', dtype='float32')(output)
+    output = _segmentation_head(x, num_classes=num_classes, kernel_initializer=kernel_initializer)
     model = Model(inputs=input_tensor, outputs=output, name=f'DeepLabV3plus')
     return model
 
@@ -356,8 +363,7 @@ def base_Unet(unet_type: str,
         for i in range(depth-1, -1, -1):
             x = upsample_and_concat(x, Skip[i], filters[i], dropout_rate[i], dropout_type[i], activation, kernel_initializer, unet_type)
         
-    output = Conv2D(num_classes, kernel_size=(1,1), kernel_initializer=kernel_initializer)(x)
-    output = Activation('softmax', name='output', dtype='float32')(output)
+    output = _segmentation_head(x, num_classes=num_classes, kernel_initializer=kernel_initializer)
     model = Model(inputs=input_tensor, outputs=output, name=f'{unet_type}_U-net' if unet_type != 'normal' else 'U-net')
     return model
 
