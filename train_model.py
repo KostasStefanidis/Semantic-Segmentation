@@ -20,6 +20,7 @@ parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['Dic
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
 parser.add_argument('--dropout', type=float, nargs='?', default=0.0)
+parser.add_argument('--augment', type=bool, nargs='?', default=False)
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('--epochs', type=int, nargs='?', default='60')
 args = parser.parse_args()
@@ -35,12 +36,12 @@ EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 ACTIVATION = args.activation
 DROPOUT_RATE = args.dropout
+AUGMENT = args.augment
 
 # define other constants
 FINAL_EPOCHS = 60
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
-AUGMENT = False
 initial_lr = 0.001
 end_lr = 0.0001
 

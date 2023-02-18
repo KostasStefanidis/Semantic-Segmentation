@@ -1,19 +1,17 @@
 #! /bin/bash
 set -e
-set pipefail
-set -x
 
 numArg=$#
 HELP=false
 
 # set Default values
 BACKBONE=None
-LOSS=HybridLoss
+LOSS=FocalHybridLoss
 BATCH_SIZE=3
 ACTIVATION=leaky_relu
 DROPOUT_RATE=0.0
 AUGMENT=false
-EPOCHS=60
+EPOCHS=20
 PREDICT=false
 
 for ((i=1 ; i <= $numArg ; i++))
@@ -84,19 +82,6 @@ done
 
 MODEL=$MODEL_TYPE/$MODEL_NAME
 
-echo $HELP
-echo $DATA_PATH
-echo $MODEL_TYPE
-echo $MODEL_NAME
-echo $BACKBONE
-echo $LOSS
-echo $BATCH_SIZE
-echo $ACTIVATION
-echo $DROPOUT_RATE
-echo $AUGMENT
-echo $EPOCHS
-echo $PREDICT
-
 displayHelp(){
     echo "HELP"
     # TODO
@@ -121,10 +106,10 @@ main(){
 
         # make predictions with the test set and convert them to rgb
         python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
-        python3 convert2rgb.py --model_type $MODEL_TYPE --model_name $MODEL_NAME --split "test"
+        #python3 convert2rgb.py --model_type $MODEL_TYPE --model_name $MODEL_NAME --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
-        zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt Confusion_matrix/$MODEL.png
+        zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt save_models/$MODEL
     fi
 }
 
