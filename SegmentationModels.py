@@ -193,7 +193,7 @@ def upsample_and_concat(input_tensor: Tensor,
     return x
 
 
-def spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
+def atrous_spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
     x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(input)
     x1 = BatchNormalization()(x1)
     x1 = Activation(activation)(x1)
@@ -263,11 +263,6 @@ def DeepLabV3plus(input_shape: tuple,
     References:
         - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611)
     """
-    
-    # calculate the dilation rate needed to achieve the wanted output stride
-    # since all networks perform spatial downsampling 5 times -> output stride = 32 by default
-    # in order to achieve output stride = 16 -> find the Conv2D layer with stride which performs downsampling
-    # and remove the striding, dilation rate needs to be added to all the Conv2D layers after !!!?
         
     first_upsampling_factor = int(output_stride / 4)
     
@@ -296,12 +291,12 @@ def DeepLabV3plus(input_shape: tuple,
     
     low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
     
-    x = spatial_pyramid_pooling(x, 
-                                256, 
-                                activation,
-                                aspp_dilation_rates,
-                                dropout_type, 
-                                dropout_rate)
+    x = atrous_spatial_pyramid_pooling(x, 
+                                       256, 
+                                       activation,
+                                       aspp_dilation_rates,
+                                       dropout_type, 
+                                       dropout_rate)
     
     # 1x1 mapping of the spatial_pyramid features
     x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
