@@ -27,7 +27,7 @@ from warnings import warn
 KERNEL_INITIALIZER = HeNormal(42)
 
 
-def get_backbone(backbone_name: str, output_stride: int, input_tensor: Tensor, freeze_backbone: bool, unfreeze_at: str, depth: int = None) -> Model:    
+def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, unfreeze_at: str, output_stride: int = None, depth: int = None) -> Model:    
     backbone_layers = {
     'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
     'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
@@ -56,15 +56,27 @@ def get_backbone(backbone_name: str, output_stride: int, input_tensor: Tensor, f
     'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
     }
     
-    layer_names = backbone_layers[backbone_name]
+    if output_stride is None:
+        output_stride = 32
+    
+    if output_stride != 32 and 'EfficientNetV2' not in backbone_name:
+        raise NotImplementedError(f'output_stride other than 32 is not implemented for backbone {backbone_name}. To specify a different value for output_stride use EfficientNetV2 as network backbone.')
     
     backbone_func = eval(backbone_name)
-    backbone_ = backbone_func(output_stride=output_stride,
-                              include_top=False,
-                              weights='imagenet',
-                              input_tensor=input_tensor,
-                              pooling=None)
-
+    
+    if 'EfficientNetV2' in backbone_name:
+        backbone_ = backbone_func(output_stride=output_stride,
+                                  include_top=False,
+                                  weights='imagenet',
+                                  input_tensor=input_tensor,
+                                  pooling=None)
+    else:
+        backbone_ = backbone_func(include_top=False,
+                                  weights='imagenet',
+                                  input_tensor=input_tensor,
+                                  pooling=None)
+    
+    layer_names = backbone_layers[backbone_name]
     if depth is None:
         depth = len(layer_names)
 
@@ -226,7 +238,7 @@ def segmentation_head(input_tensor:Tensor, num_classes:int, output_activation='s
 def DeepLabV3plus(input_shape: tuple,
                   filters: tuple, # not needed
                   num_classes: int,
-                  output_stride: int = 32,
+                  output_stride: int = None,
                   activation: str = 'relu', 
                   dropout_rate = 0.0,
                   dropout_type = 'normal',
@@ -263,8 +275,6 @@ def DeepLabV3plus(input_shape: tuple,
     References:
         - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611)
     """
-        
-    first_upsampling_factor = int(output_stride / 4)
     
     dilation_rates = {
         32 : [3, 6, 9],
@@ -273,6 +283,10 @@ def DeepLabV3plus(input_shape: tuple,
         4 : [24,48,72]
     }
     
+    if output_stride is None:
+        output_stride = 32
+        
+    first_upsampling_factor = int(output_stride / 4)
     aspp_dilation_rates = dilation_rates[output_stride]
     
     
@@ -341,8 +355,15 @@ def base_Unet(unet_type: str,
               backbone_name : str,
               freeze_backbone : bool,
               unfreeze_at : str,
+              output_stride : int = None
               ):
 
+    if output_stride is None:
+        output_stride = 32
+        
+    if output_stride != 32:
+        raise ValueError('Unet models are not implemented with backbones and output stride other than 32')
+    
     depth = len(filters)
 
     if isinstance(dropout_rate, (list, tuple)):
@@ -380,7 +401,12 @@ def base_Unet(unet_type: str,
         # but no skip connection from the top level (full spatial dimension)
         
         # Pre-trained Backbone as Encoder
-        backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, depth=depth, unfreeze_at=unfreeze_at)
+        backbone = get_backbone(backbone_name=backbone_name,
+                            output_stride=output_stride,
+                            input_tensor=input_tensor,
+                            freeze_backbone=freeze_backbone,
+                            unfreeze_at=unfreeze_at,
+                            depth=depth)
         Skip = backbone(input_tensor, training=False)
         
         # Bottleneck
@@ -413,6 +439,7 @@ def Unet(input_shape: tuple,
          backbone_name = None,
          freeze_backbone = True,
          unfreeze_at = None,
+         output_stride = None
          ):
     
     """
@@ -446,17 +473,18 @@ def Unet(input_shape: tuple,
     """
     
     return  base_Unet('normal', 
-                      input_shape, 
-                      filters, 
-                      num_classes, 
-                      activation,
-                      dropout_rate, 
-                      dropout_type, 
-                      scale_dropout, 
-                      dropout_offset,
-                      backbone_name,
-                      freeze_backbone,
-                      unfreeze_at)
+                      input_shape=input_shape, 
+                      filters=filters, 
+                      num_classes=num_classes, 
+                      activation=activation,
+                      dropout_rate=dropout_rate, 
+                      dropout_type=dropout_type, 
+                      scale_dropout=scale_dropout, 
+                      dropout_offset=dropout_offset,
+                      backbone_name=backbone_name,
+                      freeze_backbone=freeze_backbone,
+                      unfreeze_at=unfreeze_at,
+                      output_stride=output_stride)
 
 
 def Residual_Unet(input_shape: tuple,
@@ -469,7 +497,8 @@ def Residual_Unet(input_shape: tuple,
                   dropout_offset: float = 0.01,
                   backbone_name = None,
                   freeze_backbone = True,
-                  unfreeze_at = None
+                  unfreeze_at = None,
+                  output_stride = None
                   ):
     
     """
@@ -514,7 +543,9 @@ def Residual_Unet(input_shape: tuple,
                       dropout_offset=dropout_offset,
                       backbone_name=backbone_name,
                       freeze_backbone=freeze_backbone,
-                      unfreeze_at=unfreeze_at)
+                      unfreeze_at=unfreeze_at,
+                      output_stride=output_stride,
+                      )
 
 
 def Attention_Unet(input_shape: tuple,
@@ -528,6 +559,7 @@ def Attention_Unet(input_shape: tuple,
                    backbone_name = None,
                    freeze_backbone = True,
                    unfreeze_at = None,
+                   output_stride = None
                    ):
     """
     Instantiate a U-net model that uses attention modules in each decoder block to improve segmentation results by weighing 
@@ -564,17 +596,19 @@ def Attention_Unet(input_shape: tuple,
     """
     
     return  base_Unet('attention', 
-                      input_shape, 
-                      filters, 
-                      num_classes, 
-                      activation,
-                      dropout_rate,
-                      dropout_type, 
-                      scale_dropout, 
-                      dropout_offset,
+                      input_shape=input_shape, 
+                      filters=input_shape, 
+                      num_classes=num_classes, 
+                      activation=activation,
+                      dropout_rate=activation,
+                      dropout_type=dropout_type, 
+                      scale_dropout=scale_dropout,
+                      dropout_offset=scale_dropout,
                       backbone_name=backbone_name,
                       freeze_backbone=freeze_backbone,
-                      unfreeze_at=unfreeze_at)
+                      unfreeze_at=unfreeze_at,
+                      output_stride = output_stride,
+                      )
 
 
 def Unet_plus(input_shape: tuple,
@@ -587,7 +621,8 @@ def Unet_plus(input_shape: tuple,
               freeze_backbone = True,
               unfreeze_at = None,
               deep_supervision: bool = False,
-              attention: bool = False
+              attention: bool = False,
+              output_stride = None,
               ):
     
     """
@@ -640,7 +675,13 @@ def Unet_plus(input_shape: tuple,
 
     else:
         # Pre-trained Backbone as Encoder
-        backbone = get_backbone(backbone_name, input_tensor=input_tensor, freeze_backbone=freeze_backbone, depth=depth-1, unfreeze_at=unfreeze_at)
+        backbone = get_backbone(backbone_name, 
+                                input_tensor=input_tensor, 
+                                freeze_backbone=freeze_backbone, 
+                                depth=depth-1,
+                                unfreeze_at=unfreeze_at,
+                                #output_stride=output_stride,
+                                )
         Skip = backbone(input_tensor, training=False)
         
         Skip.insert(0, None)
