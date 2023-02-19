@@ -4,7 +4,7 @@ from keras import backend as K
 from keras import Model
 from keras.initializers import HeNormal
 from keras.layers import Add, Multiply
-from keras.layers import GlobalAveragePooling2D, Reshape
+from keras.layers import GlobalAveragePooling2D, Reshape, Resizing
 from keras.layers import Conv2D, Conv2DTranspose, Concatenate, Dense, SeparableConv2D
 from keras.layers import Dropout, SpatialDropout2D
 from keras.layers import MaxPooling2D, UpSampling2D
@@ -29,31 +29,31 @@ KERNEL_INITIALIZER = HeNormal(42)
 
 def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, unfreeze_at: str, output_stride: int = None, depth: int = None) -> Model:    
     backbone_layers = {
-    'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
-    'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
-    'ResNet152': ('conv1_relu', 'conv2_block3_out', 'conv3_block8_out', 'conv4_block36_out', 'conv5_block3_out'),
-    'ResNet50V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block6_1_relu', 'post_relu'),
-    'ResNet101V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block23_1_relu', 'post_relu'),
-    'ResNet152V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block8_1_relu', 'conv4_block36_1_relu', 'post_relu'),
-    'MobileNet' : ('conv_pw_1_relu', 'conv_pw_3_relu', 'conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu'),
-    'MobileNetV2' : ('block_1_expand_relu', 'block_3_expand_relu', 'block_6_expand_relu', 'block_13_expand_relu', 'out_relu'),
-    'MobileNetV3Small' : ('multiply', 're_lu_3', 'multiply_1', 'multiply_11', 'multiply_17'),
-    'MobileNetV3Large' : ('re_lu_2', 're_lu_6', 'multiply_1', 'multiply_13', 'multiply_19'),
-    'EfficientNetB0': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB1': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB2': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB3': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB4': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB5': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB6': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetB7': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B2': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2B3': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2S' : ('block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2M' : ('block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-    'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'ResNet50': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block6_out', 'conv5_block3_out'),
+        'ResNet101': ('conv1_relu', 'conv2_block3_out', 'conv3_block4_out', 'conv4_block23_out', 'conv5_block3_out'),
+        'ResNet152': ('conv1_relu', 'conv2_block3_out', 'conv3_block8_out', 'conv4_block36_out', 'conv5_block3_out'),
+        'ResNet50V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block6_1_relu', 'post_relu'),
+        'ResNet101V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block23_1_relu', 'post_relu'),
+        'ResNet152V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block8_1_relu', 'conv4_block36_1_relu', 'post_relu'),
+        'MobileNet' : ('conv_pw_1_relu', 'conv_pw_3_relu', 'conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu'),
+        'MobileNetV2' : ('block_1_expand_relu', 'block_3_expand_relu', 'block_6_expand_relu', 'block_13_expand_relu', 'out_relu'),
+        'MobileNetV3Small' : ('multiply', 're_lu_3', 'multiply_1', 'multiply_11', 'multiply_17'),
+        'MobileNetV3Large' : ('re_lu_2', 're_lu_6', 'multiply_1', 'multiply_13', 'multiply_19'),
+        'EfficientNetB0': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB1': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB2': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB3': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB4': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB5': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB6': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetB7': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2B2': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2B3': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2S' : ('block1b_add', 'block2d_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2M' : ('block1c_add', 'block2e_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
+        'EfficientNetV2L' : ('block1d_add', 'block2g_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
     }
     
     if output_stride is None:
@@ -205,23 +205,23 @@ def upsample_and_concat(input_tensor: Tensor,
     return x
 
 
-def atrous_spatial_pyramid_pooling(input: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
-    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(input)
+def atrous_spatial_pyramid_pooling(input_tensor: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
+    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
     x1 = BatchNormalization()(x1)
     x1 = Activation(activation)(x1)
     x1 = dropout_layer(x1, dropout_type, dropout_rate)
     
-    x2 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[0], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input)
+    x2 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[0], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
     x2 = BatchNormalization()(x2)
     x2 = Activation(activation)(x2)
     x2 = dropout_layer(x2, dropout_type, dropout_rate)
     
-    x3 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[1], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input)
+    x3 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[1], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
     x3 = BatchNormalization()(x3)
     x3 = Activation(activation)(x3)
     x3 = dropout_layer(x3, dropout_type, dropout_rate)
     
-    x4 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[2], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input)
+    x4 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[2], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
     x4 = BatchNormalization()(x4)
     x4 = Activation(activation)(x4)
     x4 = dropout_layer(x4, dropout_type, dropout_rate)
@@ -306,12 +306,12 @@ def DeepLabV3plus(input_shape: tuple,
     
     low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
     
-    x = atrous_spatial_pyramid_pooling(x, 
-                                       256, 
-                                       activation,
-                                       aspp_dilation_rates,
-                                       dropout_type, 
-                                       dropout_rate)
+    x = atrous_spatial_pyramid_pooling(input_tensor=x, 
+                                       filters=256, 
+                                       activation=activation,
+                                       dilation_rates=aspp_dilation_rates,
+                                       dropout_type=dropout_type, 
+                                       dropout_rate=dropout_rate)
     
     # 1x1 mapping of the spatial_pyramid features
     x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
