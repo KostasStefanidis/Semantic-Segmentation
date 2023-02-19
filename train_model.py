@@ -23,7 +23,8 @@ parser.add_argument('--activation', type=str, nargs='?', default='relu')
 parser.add_argument('--dropout', type=float, nargs='?', default=0.0)
 parser.add_argument('--augment', type=bool, nargs='?', default=False)
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
-parser.add_argument('--epochs', type=int, nargs='?', default='60')
+parser.add_argument('--epochs', type=int, nargs='?', default='20')
+parser.add_argument('--final_epochs', type=int, nargs='?', default='60')
 args = parser.parse_args()
 
 # parse arguments
@@ -39,9 +40,9 @@ DROPOUT_RATE = args.dropout
 AUGMENT = args.augment
 NUM_CLASSES = args.num_classes
 EPOCHS = args.epochs
+FINAL_EPOCHS = args.final_epochs
 
 # define other constants
-FINAL_EPOCHS = 60
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
 initial_lr = 0.001

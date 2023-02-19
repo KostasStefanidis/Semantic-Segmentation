@@ -7,6 +7,7 @@ import os
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
+from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
@@ -14,17 +15,27 @@ parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'Unet_plus', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
+parser.add_argument('--output_stride', type=int, nargs='?', default=32)
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
+parser.add_argument('--activation', type=str, nargs='?', default='relu')
+parser.add_argument('--dropout', type=float, nargs='?', default=0.0)
 parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 args = parser.parse_args()
 
-data_path = args.data_path
+DATA_PATH = args.data_path
 MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
-NUM_CLASSES = args.num_classes
 BACKBONE = args.backbone
+OUTPUT_STRIDE = args.output_stride
 LOSS = args.loss
 BATCH_SIZE = 1
+ACTIVATION = args.activation
+DROPOUT_RATE = args.dropout
+NUM_CLASSES = args.num_classes
+
+FILTERS = [16,32,64,128,256]
+INPUT_SHAPE = (1024, 2048, 3)
+
 
 if BACKBONE == 'None':
     PREPROCESSING = 'default'
@@ -50,7 +61,7 @@ class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
                'bus', 'train', 'motorcycle', 'bicycle', 'void']
 
 val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
+val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
 
 loss_func = eval(LOSS)
 loss = loss_func()
@@ -85,7 +96,20 @@ metrics = [mean_iou, mean_iou_ignore,
 
 model_dir = 'saved_models'
 model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
-model = tf.keras.models.load_model(model_filepath, compile=False)
+
+model_function = eval(MODEL_TYPE)
+model = model_function(input_shape=INPUT_SHAPE,
+                       filters=FILTERS,
+                       num_classes=NUM_CLASSES,
+                       output_stride=OUTPUT_STRIDE,
+                       activation=ACTIVATION,
+                       dropout_rate=DROPOUT_RATE,
+                       backbone_name=BACKBONE,
+                       freeze_backbone=True
+                       )
+
+model.load_weights(model_filepath)
+
 model.compile(loss=loss, metrics=metrics)
 
 print('Model Evaluation')
@@ -93,13 +117,14 @@ score = model.evaluate(val_ds, verbose=2)
 print()
 model.summary()
 
-confusion_matrix = mean_iou.get_confusion_matrix()
-plt.rcParams["figure.figsize"] = (25,20)
-disp = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix,
-                              display_labels=class_names
-                              )
+# SAVE CONFUSION MATRIX TO AS A PNG FILE
+# confusion_matrix = mean_iou.get_confusion_matrix()
+# plt.rcParams["figure.figsize"] = (25,20)
+# disp = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix,
+#                               display_labels=class_names
+#                               )
 
-disp.plot(cmap='YlGnBu')
-conf_matrix_dir = f'Confusion_matrix/{MODEL_TYPE}'
-os.makedirs(conf_matrix_dir, exist_ok=True)
-plt.savefig(f'{conf_matrix_dir}/{MODEL_NAME}.png', bbox_inches='tight')
+# disp.plot(cmap='YlGnBu')
+# conf_matrix_dir = f'Confusion_matrix/{MODEL_TYPE}'
+# os.makedirs(conf_matrix_dir, exist_ok=True)
+# plt.savefig(f'{conf_matrix_dir}/{MODEL_NAME}.png', bbox_inches='tight')
