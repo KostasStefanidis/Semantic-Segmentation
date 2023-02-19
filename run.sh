@@ -6,7 +6,8 @@ HELP=false
 
 # set Default values
 BACKBONE=None
-OUTPUT_STRIDE=32
+TRAIN_OUTPUT_STRIDE=32
+EVAL_OUTPUT_STRIDE=32
 LOSS=FocalHybridLoss
 BATCH_SIZE=3
 ACTIVATION=leaky_relu
@@ -44,7 +45,12 @@ do
     
     if [ "$1" == "-output-stride" ] || [ "$1" == "--output-stride" ]
         then
-            OUTPUT_STRIDE=$2
+            TRAIN_OUTPUT_STRIDE=$2
+        fi
+
+    if [ "$1" == "-output-stride" ] || [ "$1" == "--output-stride" ]
+        then
+            EVAL_OUTPUT_STRIDE=$2
         fi
 
     if [ "$1" == "-l" ] || [ "$1" == "--loss" ]
@@ -95,13 +101,13 @@ displayHelp(){
 
 main(){
     # train model
-    python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride \
+    python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride $TRAIN_OUTPUT_STRIDE\
      --loss $LOSS --batch_size $BATCH_SIZE --activation $ACTIVATION --dropout $DROPOUT_RATE --augment $AUGMENT --epochs $EPOCHS
 
     mkdir -p -m=776 Evaluation_logs/$MODEL_TYPE
 
     #Evaluate model and save results in eval/MODEL_NAME.txt file
-    python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME \
+    python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --output_stride $EVAL_OUTPUT_STRIDE\
     --backbone $BACKBONE --loss $LOSS >> Evaluation_logs/$MODEL_TYPE/$MODEL_NAME.txt
 
     if [ $PREDICT = 'true' ]
