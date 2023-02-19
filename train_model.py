@@ -16,6 +16,7 @@ parser.add_argument('--data_path', type=str, nargs='?', required=True)
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'Unet_plus', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
+parser.add_argument('--output_stride', type=int, nargs='?', default=32)
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
@@ -29,14 +30,15 @@ args = parser.parse_args()
 DATA_PATH = args.data_path
 MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
-NUM_CLASSES = args.num_classes
 BACKBONE = args.backbone
+OUTPUT_STRIDE = args.output_stride
 LOSS = args.loss
-EPOCHS = args.epochs
 BATCH_SIZE = args.batch_size
 ACTIVATION = args.activation
 DROPOUT_RATE = args.dropout
 AUGMENT = args.augment
+NUM_CLASSES = args.num_classes
+EPOCHS = args.epochs
 
 # define other constants
 FINAL_EPOCHS = 60
@@ -105,9 +107,9 @@ model_function = eval(MODEL_TYPE)
 model = model_function(input_shape=INPUT_SHAPE,
                        filters=FILTERS,
                        num_classes=NUM_CLASSES,
+                       output_stride=OUTPUT_STRIDE,
                        activation=ACTIVATION,
                        dropout_rate=DROPOUT_RATE,
-                       dropout_type='normal',
                        backbone_name=BACKBONE,
                        freeze_backbone=True
                        )
@@ -119,7 +121,7 @@ loss = loss_func()
 
 lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     initial_learning_rate=initial_lr,
-    decay_steps=20*992,
+    decay_steps=15*992,
     end_learning_rate=end_lr,
     power=2,
     cycle=False,
@@ -146,10 +148,10 @@ if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=AUGMENT)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=AUGMENT)
 
     val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
@@ -166,9 +168,9 @@ if BACKBONE is not None:
     model = model_function(input_shape=INPUT_SHAPE,
                            filters=FILTERS,
                            num_classes=NUM_CLASSES,
+                           output_stride=OUTPUT_STRIDE,
                            activation=ACTIVATION,
                            dropout_rate=DROPOUT_RATE,
-                           dropout_type='normal',
                            backbone_name=BACKBONE,
                            freeze_backbone=False,
                            unfreeze_at='block6a_expand_activation'

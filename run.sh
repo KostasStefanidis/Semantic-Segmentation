@@ -6,6 +6,7 @@ HELP=false
 
 # set Default values
 BACKBONE=None
+OUTPUT_STRIDE=32
 LOSS=FocalHybridLoss
 BATCH_SIZE=3
 ACTIVATION=leaky_relu
@@ -39,6 +40,11 @@ do
     if [ "$1" == "-b" ] || [ "$1" == "--backbone" ]
         then
             BACKBONE=$2
+        fi
+    
+    if [ "$1" == "-output-stride" ] || [ "$1" == "--output-stride" ]
+        then
+            OUTPUT_STRIDE=$2
         fi
 
     if [ "$1" == "-l" ] || [ "$1" == "--loss" ]
@@ -89,7 +95,7 @@ displayHelp(){
 
 main(){
     # train model
-    python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE\
+    python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride \
      --loss $LOSS --batch_size $BATCH_SIZE --activation $ACTIVATION --dropout $DROPOUT_RATE --augment $AUGMENT --epochs $EPOCHS
 
     mkdir -p -m=776 Evaluation_logs/$MODEL_TYPE

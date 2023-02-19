@@ -276,16 +276,17 @@ def DeepLabV3plus(input_shape: tuple,
         - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611)
     """
     
+    assert output_stride in [8,16,32,None]
+    
     dilation_rates = {
         32 : [3, 6, 9],
         16 : [6,12,18],
         8 : [12,24,36],
-        4 : [24,48,72]
     }
     
     if output_stride is None:
         output_stride = 32
-        
+    
     first_upsampling_factor = int(output_stride / 4)
     aspp_dilation_rates = dilation_rates[output_stride]
     
@@ -338,7 +339,7 @@ def DeepLabV3plus(input_shape: tuple,
     
     input_spatial_resolution = model.input_shape[1:3]
     output_spatial_resolution = model.output_shape[1:3]
-    assert input_spatial_resolution == output_spatial_resolution
+    assert input_spatial_resolution == output_spatial_resolution, f'Model output spatial resolution must be equal to input spatial resolution.'
     
     return model
 
@@ -423,7 +424,7 @@ def base_Unet(unet_type: str,
     
     input_spatial_resolution = model.input_shape[1:3]
     output_spatial_resolution = model.output_shape[1:3]
-    assert input_spatial_resolution == output_spatial_resolution
+    assert input_spatial_resolution == output_spatial_resolution, f'Model output spatial resolution must be equal to input spatial resolution.'
     
     return model
 
