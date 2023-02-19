@@ -10,13 +10,12 @@ services:
         - "tensorflow:2.10.1-gpu"
     container_name: tf-gpu-0
     user: root
-    working_dir: /home/kstef/Semantic-Segmentation-Cityscapes
     tty: true
     stdin_open: true
     volumes:
       - /home/kstef/Semantic-Segmentation-Cityscapes:/root/Semantic-Segmentation-Cityscapes
       - /home/kstef/.keras:/root/.keras
-      - /home/kstef/dataset:/home/root/dataset
+      - /home/kstef/dataset:/root/dataset
     deploy:
       resources:
         reservations:
