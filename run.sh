@@ -143,7 +143,7 @@ main(){
         python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
-        zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt save_models/$MODEL
+        zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL
     fi
 }
 

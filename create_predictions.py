@@ -84,5 +84,4 @@ for dataset_elem, filename in zip(ds, img_name_list):
     Y = 0.7
     rgb_img = Y * tf.squeeze(input_image).numpy() + (1-Y) * rgb_pred
     
-    print(f'Converting to RGB : {filename}')
     tf.keras.utils.save_img(f'{rgb_path}/{filename}', rgb_img, data_format='channels_last', scale=False)
