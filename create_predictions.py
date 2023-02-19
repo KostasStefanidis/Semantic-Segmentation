@@ -81,7 +81,7 @@ for dataset_elem, filename in zip(ds, img_name_list):
     for key in color_map.keys():
         rgb_pred[prediction == key] = color_map[key]
         
-    Y = 0.65
+    Y = 0.7
     rgb_img = Y * tf.squeeze(input_image).numpy() + (1-Y) * rgb_pred
     
     print(f'Converting to RGB : {filename}')
