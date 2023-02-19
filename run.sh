@@ -1,5 +1,5 @@
 #! /bin/bash
-set -ex
+set -e
 
 numArg=$#
 HELP=false
@@ -138,11 +138,9 @@ main(){
     then
         # make predictions with the validation set and convert them to rgb
         python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"
-        python3 convert2rgb.py --model_type $MODEL_TYPE --model_name $MODEL_NAME --split "val"
 
         # make predictions with the test set and convert them to rgb
         python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
-        #python3 convert2rgb.py --model_type $MODEL_TYPE --model_name $MODEL_NAME --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
         zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt save_models/$MODEL
