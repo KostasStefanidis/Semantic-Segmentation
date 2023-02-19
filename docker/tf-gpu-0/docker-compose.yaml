@@ -2,20 +2,20 @@ services:
   tensorflow:
     image: tensorflow:2.10.1-gpu
     build:
-      context: .
+      context: ..
       dockerfile: tensorflow-2.10.1-gpu.Dockerfile
       args:
         USERNAME: kstef
       tags:
         - "tensorflow:2.10.1-gpu"
-    container_name: tf-0
+    container_name: tf-gpu-0
     user: root
     working_dir: /home/kstef/Semantic-Segmentation-Cityscapes
     tty: true
     stdin_open: true
     volumes:
       - /home/kstef/Semantic-Segmentation-Cityscapes:/home/kstef/Semantic-Segmentation-Cityscapes
-      - /home/kstef/.keras:/home/kstef/.keras
+      - /home/kstef/.keras:/root/.keras
       - /home/kstef/dataset:/home/kstef/dataset
     deploy:
       resources:
