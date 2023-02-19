@@ -14,9 +14,9 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - /home/kstef/Semantic-Segmentation-Cityscapes:/home/kstef/Semantic-Segmentation-Cityscapes
+      - /home/kstef/Semantic-Segmentation-Cityscapes:/root/Semantic-Segmentation-Cityscapes
       - /home/kstef/.keras:/root/.keras
-      - /home/kstef/dataset:/home/kstef/dataset
+      - /home/kstef/dataset:/home/root/dataset
     deploy:
       resources:
         reservations:
