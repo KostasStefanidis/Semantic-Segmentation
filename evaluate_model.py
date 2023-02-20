@@ -97,18 +97,20 @@ metrics = [mean_iou, mean_iou_ignore,
 model_dir = 'saved_models'
 model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
 
-model_function = eval(MODEL_TYPE)
-model = model_function(input_shape=INPUT_SHAPE,
-                       filters=FILTERS,
-                       num_classes=NUM_CLASSES,
-                       output_stride=OUTPUT_STRIDE,
-                       activation=ACTIVATION,
-                       dropout_rate=DROPOUT_RATE,
-                       backbone_name=BACKBONE,
-                       freeze_backbone=True
-                       )
+# model_function = eval(MODEL_TYPE)
+# model = model_function(input_shape=INPUT_SHAPE,
+#                        filters=FILTERS,
+#                        num_classes=NUM_CLASSES,
+#                        output_stride=OUTPUT_STRIDE,
+#                        activation=ACTIVATION,
+#                        dropout_rate=DROPOUT_RATE,
+#                        backbone_name=BACKBONE,
+#                        freeze_backbone=True
+#                        )
 
-model.load_weights(model_filepath)
+# model.load_weights(model_filepath)
+
+model = tf.keras.models.load_model(model_filepath, compile=False)
 
 model.compile(loss=loss, metrics=metrics)
 

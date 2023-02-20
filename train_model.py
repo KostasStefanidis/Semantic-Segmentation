@@ -158,7 +158,7 @@ if BACKBONE is not None:
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
     model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                                 save_weights_only=False,
-                                                monitor='val_MeanIoU',
+                                                monitor='val_MeanIoU_ignore',
                                                 mode='max',
                                                 save_best_only=True,
                                                 verbose=0)
