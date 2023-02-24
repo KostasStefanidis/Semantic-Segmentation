@@ -205,7 +205,7 @@ def upsample_and_concat(input_tensor: Tensor,
     return x
 
 
-def atrous_spatial_pyramid_pooling(input_tensor: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
+def ASPP(input_tensor: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
     x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
     x1 = BatchNormalization()(x1)
     x1 = Activation(activation)(x1)
@@ -305,13 +305,15 @@ def DeepLabV3plus(input_shape: tuple,
     x = Skip[-1]
     
     low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
     
-    x = atrous_spatial_pyramid_pooling(input_tensor=x, 
-                                       filters=256, 
-                                       activation=activation,
-                                       dilation_rates=aspp_dilation_rates,
-                                       dropout_type=dropout_type, 
-                                       dropout_rate=dropout_rate)
+    x = ASPP(input_tensor=x, 
+             filters=256, 
+             activation=activation,
+             dilation_rates=aspp_dilation_rates,
+             dropout_type=dropout_type, 
+             dropout_rate=dropout_rate)
     
     # 1x1 mapping of the spatial_pyramid features
     x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
