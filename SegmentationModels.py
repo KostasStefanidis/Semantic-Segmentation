@@ -226,7 +226,21 @@ def ASPP(input_tensor: Tensor, filters: int, activation: str, dilation_rates, dr
     x4 = Activation(activation)(x4)
     x4 = dropout_layer(x4, dropout_type, dropout_rate)
     
+#     pooling_size = input_shape
+#     image_feature = AveragePooling2D(pooling_size, strides=1, padding='same')(inputs)
+#     image_feature = Conv2D(dim, (1, 1), padding='same', use_bias=False)(image_feature)
+#     image_feature = BatchNormalization()(image_feature)
+#     image_feature = Activation('relu')(image_feature)
+#     image_feature = Lambda(lambda x: tf.image.resize(x, input_shape))(image_feature)
+
+    
     x = Concatenate()([x1,x2,x3,x4])
+    
+    # 1x1 mapping of the spatial_pyramid features
+    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
+    x = BatchNormalization()(x)
+    x = Activation(activation)(x)
+    x = dropout_layer(x, dropout_type, dropout_rate)
     return x
 
 
@@ -304,10 +318,7 @@ def DeepLabV3plus(input_shape: tuple,
     # Bottleneck
     x = Skip[-1]
     
-    low_level_features = Conv2D(48, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
-    x = BatchNormalization()(x)
-    x = Activation(activation)(x)
-    
+    # Atrous Spatial Pyramid Pooling
     x = ASPP(input_tensor=x, 
              filters=256, 
              activation=activation,
@@ -315,11 +326,9 @@ def DeepLabV3plus(input_shape: tuple,
              dropout_type=dropout_type, 
              dropout_rate=dropout_rate)
     
-    # 1x1 mapping of the spatial_pyramid features
-    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
-    x = BatchNormalization()(x)
-    x = Activation(activation)(x)
-    x = dropout_layer(x, dropout_type, dropout_rate)
+    low_level_features = Conv2D(48, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
+    low_level_features = BatchNormalization()(low_level_features)
+    low_level_features = Activation(activation)(low_level_features)
     
     # Decoder module
     x = UpSampling2D(size=first_upsampling_factor, interpolation='bilinear')(x)
