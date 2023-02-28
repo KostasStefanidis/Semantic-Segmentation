@@ -121,7 +121,7 @@ main(){
     # train model
     if [ $TRAIN = 'true' ]
     then
-        python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride $TRAIN_OUTPUT_STRIDE\
+        cd scripts/ && python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride $TRAIN_OUTPUT_STRIDE\
         --loss $LOSS --batch_size $BATCH_SIZE --activation $ACTIVATION --dropout $DROPOUT_RATE --augment $AUGMENT --epochs $EPOCHS --final_epochs $FINAL_EPOCHS
     fi
 
@@ -130,17 +130,17 @@ main(){
     then
         mkdir -p -m=776 Evaluation_logs/$MODEL_TYPE
 
-        python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --output_stride $EVAL_OUTPUT_STRIDE\
+        cd scripts/ && python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --output_stride $EVAL_OUTPUT_STRIDE\
         --backbone $BACKBONE --loss $LOSS >> Evaluation_logs/$MODEL_TYPE/$MODEL_NAME.txt
     fi
 
     if [ $PREDICT = 'true' ]
     then
         # make predictions with the validation set and convert them to rgb
-        python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"
+        cd scripts/ && python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"
 
         # make predictions with the test set and convert them to rgb
-        python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
+        cd scripts/ && python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
         zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL

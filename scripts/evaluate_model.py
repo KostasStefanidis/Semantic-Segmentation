@@ -1,13 +1,13 @@
 import tensorflow as tf
 import numpy as np
 from keras import backend as K
-from DatasetUtils import Dataset
-from EvaluationUtils import MeanIoU
 import os
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
-from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
-from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
+from ..utils.SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
+from ..utils.DatasetUtils import Dataset
+from ..utils.EvaluationUtils import MeanIoU
+from ..utils.SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from argparse import ArgumentParser
 
 parser = ArgumentParser('')
