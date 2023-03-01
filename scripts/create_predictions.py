@@ -1,8 +1,8 @@
 import tensorflow as tf
-from DatasetUtils import Dataset, color_map
 import os
 import numpy as np
 from argparse import ArgumentParser
+from ..utils.DatasetUtils import Dataset, color_map
 
 parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
