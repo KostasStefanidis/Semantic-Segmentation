@@ -46,12 +46,12 @@ do
             BACKBONE=$2
         fi
     
-    if [ "$1" == "--train-output-stride" ]
+    if [ "$1" == "--train-out-stride" ]
         then
             TRAIN_OUTPUT_STRIDE=$2
         fi
 
-    if [ "$1" == "--eval-output-stride" ]
+    if [ "$1" == "--eval-out-stride" ]
         then
             EVAL_OUTPUT_STRIDE=$2
         fi
@@ -113,8 +113,29 @@ done
 MODEL=$MODEL_TYPE/$MODEL_NAME
 
 displayHelp(){
-    echo "HELP"
-    # TODO
+    echo ''
+    echo 'Usage: ./run.sh [OPTIONS]'
+    echo ''
+    echo 'Perform model training, evaluation and optionally create the predictions'
+    echo ''
+    echo 'Options:'
+    echo '  -h, --help               Display help'
+    echo '  -d, --data-path          The root directory of the dataset'
+    echo '  -t, --model-type         Model type'
+    echo '  -n, --model-name         The name the model will have'
+    echo '  -b, --backbone           The backbone that will be used for the model. Supported Backbones are ResNet, ResNetV2, EfficientNet, EfficientNetV2, MobileNetV1,V2,V3 and RegNetX and RegNetY. (Defaults to None).'
+    echo '      --train-out-stride   The output stride to use during training. Output stride is the ratio of input image spatial resolution to the encoder output resolution. (Defaults to 32).'
+    echo '      --eval-out-stride    The output stride to use during inference/evaluation.  (Defaults to 32).'
+    echo '  -l, --loss               Loss function to be used for training the model. (Options: DiceLoss, IoULoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss) (Defaults to FocalHybridLoss).'
+    echo '      --batch-size         Batch size to be used during training.  (Defaults to 3).'
+    echo '      --activation         Activation function to be used at the output of each Conv2D layer. (Defaults to leaky_relu).'
+    echo '      --dropout            Dropout rate of the dropout layers. (Defaults to 0).'
+    echo '      --augment            Use data augmentation.  (Defaults to false).'
+    echo '  -e, --epochs             The number of epochs the model will be trained for. When using a model backbone this number is the number of epochs for the initial run where the backbone is frozen. Defaults to 20'
+    echo '      --final-epochs       The final number of epochs for the second run where part of the backbone is unfrozen. Defaults to 60'
+    echo '      --no-train           Set this flag to disable training.'
+    echo '      --no-eval            Set this flag to disable evaluation.'
+    echo '  -p, --predict            Whether to make predictions or not for val and test sets after training and evaluating the model.'
 }
 
 main(){

@@ -7,19 +7,76 @@ This repository focuses solely on the **Pixel-Level Semantic Labeling Task** of 
 ## Dataset Utilities
 ### 1. File parsing and decoding
 Parse files which are under the following directory sctructure
-- ***data_path*** : the root directory where the dataset is located
-    - *leftImg8bit_trainvaltest* -> RGB Images
-        - *leftImg8bit*
-            - *train*
-            - *val*
-            - *test*
-    - *gtFine_trainvaltest* -> Ground Truth Images
-        - *gtFine*
-            - *train*
-            - *val*
-            - *test*
 
-Each of the train,val,test directories contain subdirectories with the name of a city. To use a whole split, *`subfolder='all'`* must be passed to the *`Dataset.create()`* method in order to read the images from all the subfolders. For testing purposes a smaller number of images from the dataset can be used by passing `*subfolder='<CityName>'*` to *`create()`*. For example, passing *`split='train'`* to the Dataset constructor, and *`subfolder='aachen'`* to the *`create()`* method will make the Dataset object only read the 174 images in the folder aachen and convert them into a *tf.data.Dataset*. You can choose either all the subfolders or one of them, but not an arbitrary combination of them. After the images `(x)` and the ground truth images `(y)` are read and decoded, they are combined into a single object `(x, y)`.
+---
+    <data_path> : the root directory of the Cityscapes dataset
+    |
+    ├── gtFine_trainvaltest
+    │   └── gtFine
+    │       ├── test
+    │       │   ├── berlin
+    │       │   ├── bielefeld
+    │       │   ├── bonn
+    │       │   ├── leverkusen
+    │       │   ├── mainz
+    │       │   └── munich
+    │       ├── train
+    │       │   ├── aachen
+    │       │   ├── bochum
+    │       │   ├── bremen
+    │       │   ├── cologne
+    │       │   ├── darmstadt
+    │       │   ├── dusseldorf
+    │       │   ├── erfurt
+    │       │   ├── hamburg
+    │       │   ├── hanover
+    │       │   ├── jena
+    │       │   ├── krefeld
+    │       │   ├── monchengladbach
+    │       │   ├── strasbourg
+    │       │   ├── stuttgart
+    │       │   ├── tubingen
+    │       │   ├── ulm
+    │       │   ├── weimar
+    │       │   └── zurich
+    │       └── val
+    │           ├── frankfurt
+    │           ├── lindau
+    │           └── munster
+    └── leftImg8bit_trainvaltest
+        └── leftImg8bit
+            ├── test
+            │   ├── berlin
+            │   ├── bielefeld
+            │   ├── bonn
+            │   ├── leverkusen
+            │   ├── mainz
+            │   └── munich
+            ├── train
+            │   ├── aachen
+            │   ├── bochum
+            │   ├── bremen
+            │   ├── cologne
+            │   ├── darmstadt
+            │   ├── dusseldorf
+            │   ├── erfurt
+            │   ├── hamburg
+            │   ├── hanover
+            │   ├── jena
+            │   ├── krefeld
+            │   ├── monchengladbach
+            │   ├── strasbourg
+            │   ├── stuttgart
+            │   ├── tubingen
+            │   ├── ulm
+            │   ├── weimar
+            │   └── zurich
+            └── val
+                ├── frankfurt
+                ├── lindau
+                └── munster
+
+Each of the train,val,test directories contain subdirectories with the name of a city. To use a whole split, *`subfolder='all'`* must be passed to the *`Dataset.create()`* method in order to read the images from all the subfolders. For testing purposes a smaller number of images from the dataset can be used by passing `*subfolder='<CityName>'*`. For example, passing *`split='train'`* to the Dataset() constructor, and *`subfolder='aachen'`* to the *`create()`* method will make the Dataset object only read the 174 images in the folder aachen and convert them into a *tf.data.Dataset*. You can choose either all the subfolders or one of them, but not an arbitrary combination of them. After the images `(x)` and the ground truth images `(y)` are read and decoded, they are combined into a single object `(x, y)`.
 
 ### 2. Preprocessing :
 Generally images have a shape of `(batch_size, height, width, channels)`
@@ -78,50 +135,55 @@ Using an ImageNet pretrained backbone is supported only for `U-net`, `Residual U
 
 ## Script usage
 
-Example: train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNetV2` backbone, `Dice Loss` as a loss function, using batch size equal to `1`, the `relu` activation function and dropout rate of `0.1` for the Dropout layers, for `60 epochs`.
+E.g. : Train a `DeepLabV3plus` model named `MyDeepLabV3plus` with `EfficientNetV2B0` backbone, `Dice Loss` as a loss function, using batch size equal to `1`, the `relu` activation function and dropout rate of `0.1` for the Dropout layers, for `60 epochs`.
 1. Train the model
     ```
-    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 --loss DiceLoss --batch_size 1 --activation relu --dropout 0.1 --epochs 60
+    > python3 train_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2B0 --loss DiceLoss --batch_size 1 --activation relu --dropout 0.1 --epochs 60
     ```
+
 2. Evaluate the model on the validation set. 
-    - Evaluate the MeanIoU 
+    - Evaluate the MeanIoU
     - Evaluate the IoU of every class seperatly
     - Generate the confusion matrix for validation set
     ```
-    > python3 evaluate_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 
+    > python3 evaluate_model.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2B0
     ```
+
 3. Create predictions for validation set
     - Perform inference on the validation set and save the predicted grayscale images
     ```
     > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 --split "val"
     ```
-    - Convert the predictions to RGB
-    ```
-    > python3 convert2rgb.py --model_type DeepLabV3plus --model_name MyDeepLabV3plus --split "val"
-    ```
+
 4. Create predictions for test set
-    - Perform inference on the test set and save the predicted grayscale images
+    
+    Perform inference on the test set and save the predicted grayscale images
     ```
     > python3 create_predictions.py --data_path /path/to/dataset --model_type DeepLabV3plus --model_name MyDeepLabV3plus --backbone EfficientNetV2 --split "test"
     ```
-    - Convert the predictions to RGB
-    ```
-    > python3 convert2rgb.py --model_type DeepLabV3plus --model_name MyDeepLabV3plus --split "test"
-    ```
 
 
-The `run.sh` script takes the following `necessary` flags:
-- -d : The path which contains the dataset
-- -t : Model type
-- -n : The name the model will have
-- -b : The type of backbone that will be used for the model.
-- -l : Loss function to be used for training the model. Options: `DiceLoss`, `IoULoss`, `TverskyLoss`, `FocalTverskyLoss`, `HybridLoss`, `FocalHybridLoss`
-- s : Batch size
-- a : Activation function to be used at the output of each Conv2D layer
-- r : Dropout rate : Defaults to 0.
-- e : The number of epochs the model will be trained for.
-- p : Whether to make predictions or not for val and test sets after training and evaluating the model. Defaults to false.
+### The `run.sh` Performs model **training** and **evaluation** by default, and to optionally create the **predictions**. 
+This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive when the predict flag is set.
+
+- -h, --help : Display help
+- -d, --data-path : The root directory of the dataset
+- -t, --model-type : Model type
+- -n, --model-name : The name the model will have
+- -b, --backbone : The backbone that will be used for the model. Supported Backbones are `ResNet`, `ResNetV2`, `EfficientNet`, `EfficientNetV2`, `MobileNetV1,V2,V3` and `RegNetX` and `RegNetY`. Defaults to `None`.
+- --train-out-stride : The output stride to use during training. Output stride is the ratio of input image spatial resolution to the encoder output resolution. Defaults to `32`.
+- --eval-out-stride : The output stride to use during inference/evaluation.  Defaults to `32`.
+- -l, --loss : Loss function to be used for training the model. Options: `DiceLoss`, `IoULoss`, `TverskyLoss`, `FocalTverskyLoss`, `HybridLoss`, `FocalHybridLoss`.  Defaults to `FocalHybridLoss`.
+- --batch-size : Batch size to be used during training.  Defaults to `3`.
+- --activation : Activation function to be used at the output of each Conv2D layer.  Defaults to `leaky_relu`.
+- --dropout : Dropout rate : Defaults to `0` -> No dropout layers.
+- --augment : Use data augmentation.  Defaults to `false`.
+- -e, --epochs : The number of epochs the model will be trained for. When using a model backbone this number is the number of epochs for the initial run where the backbone is frozen.
+- --final-epochs : The final number of epochs for the second run where part of the backbone is unfrozen.
+- --no-train : Set this flag to disable training.
+- --no-eval : Set this flag to disable evaluation.
+- -p, --predict : Whether to make predictions or not for val and test sets after training and evaluating the model.
+
 ```
 > ./run.sh -d /path/to/dataset -t DeepLabV3plus -n MyDeepLabV3plus -b EfficientNetV2 
 ```
-This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive.

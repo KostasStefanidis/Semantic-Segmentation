@@ -301,7 +301,7 @@ def DeepLabV3plus(input_shape: tuple,
         - `num_classes` (int): The number of classes to segment the images to. The final Convolution layer has `num_classes` number of filters
             and followed by a softmax activation, the network produces a probability vector for each pixel, that represents the probabilities 
             for the given pixel to belong to each class.
-        - `output_stride` (int): The the ratio of input image spatial resolution to the encoder output resolution .
+        - `output_stride` (int): The ratio of input image spatial resolution to the encoder output resolution .
         - `activation` (str, optional): The activation function to be used throughout the network. Defaults to 'relu'.
         - `dropout_rate` (float, optional): The dropout rate used in the dropout layers. Defaults to 0.0.
         - `dropout_type` (str, optional): The type of dropout layers to be used. Options are 'normal' and 'spatial'. Defaults to 'normal'.
