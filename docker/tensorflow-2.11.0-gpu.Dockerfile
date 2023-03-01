@@ -27,7 +27,8 @@ RUN pip install --upgrade pip \
 && pip install scipy \
 && pip install pandas \
 && pip install matplotlib \
-&& pip install -U scikit-learn
+&& pip install -U scikit-learn \
+&& pip install tf-models-official
 
 RUN git config --global user.name $USERNAME \
 && git config --global user.email kstefanidis48@gmail.com
