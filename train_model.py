@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 from keras.callbacks import ModelCheckpoint, TensorBoard
-from keras.optimizers import Adam, SGD
+from keras.optimizers import Adam, SGD, Adadelta, Nadam
 from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
 from keras import mixed_precision
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
@@ -17,6 +17,7 @@ parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--output_stride', type=int, nargs='?', default=32)
+parser.add_argument('--optimizer', type=str, nargs='?', default='Adam', choices=['Adam', 'Adadelta', 'Nadam', 'AdaBelief', 'SGDW', 'AdamW'])
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
@@ -59,6 +60,14 @@ elif 'EfficientNet' in BACKBONE:
     PREPROCESSING = 'EfficientNet'
 elif 'EfficientNetV2' in BACKBONE:
     PREPROCESSING = 'EfficientNetV2'
+elif 'MobileNet' == BACKBONE:
+    PREPROCESSING = 'MobileNet'
+elif 'MobileNetV2' == BACKBONE:
+    PREPROCESSING = 'MobileNetV2'
+elif 'MobileNetV3' in BACKBONE:
+    PREPROCESSING = 'MobileNetV3'
+elif 'RegNet' in BACKBONE:
+    PREPROCESSING = 'RegNet'
 else:
     raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
@@ -120,7 +129,7 @@ model.summary()
 loss_func = eval(LOSS)
 loss = loss_func()
 
-lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
+schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     initial_learning_rate=initial_lr,
     decay_steps=15*992,
     end_learning_rate=end_lr,
@@ -129,7 +138,15 @@ lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     name=None
     )
 
-optimizer = Adam(initial_lr) if BACKBONE is None else Adam(lr_schedule)
+weight_decay = 1e-5
+wd_schedule = lambda : weight_decay * schedule
+
+optimizer = Adam(initial_lr) if BACKBONE is None else Adam(schedule)
+# optimizer = Nadam(schedule)
+# optimizer = Adadelta(schedule)
+# optimizer = AdamW(schedule, weight_decay=wd_schedule)
+# optimizer = AdaBelief(schedule, weight_decay=wd_schedule)
+# optimizer = SGDW(schedule, momentum=0.9, weight_decay=wd_schedule)
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
@@ -149,10 +166,10 @@ if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=AUGMENT)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-2, use_patches=False, augment=AUGMENT)
 
     val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-2, use_patches=False, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'

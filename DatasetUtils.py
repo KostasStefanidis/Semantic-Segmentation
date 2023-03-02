@@ -5,7 +5,7 @@ import random
 from keras.layers import RandomFlip, RandomBrightness, RandomContrast
 import tensorflow_addons as tfa
 from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
-from keras.applications import resnet, resnet_v2, efficientnet, efficientnet_v2
+from keras.applications import resnet, resnet_v2, efficientnet, efficientnet_v2, regnet
 from keras.applications import mobilenet, mobilenet_v2, mobilenet_v3
 
 # dictionary that contains the mapping of the class numbers to rgb color values
@@ -208,7 +208,8 @@ class Dataset():
             'MobileNetV2' : mobilenet_v2.preprocess_input,
             'MobileNetV3' : mobilenet_v3.preprocess_input,
             'EfficientNet' : efficientnet.preprocess_input,
-            'EfficientNetV2' : efficientnet_v2.preprocess_input
+            'EfficientNetV2' : efficientnet_v2.preprocess_input,
+            'RegNet' : regnet.preprocess_input
         }
         preprocess_input = preprocessing_options[self.preprocessing]
         return preprocess_input(image)

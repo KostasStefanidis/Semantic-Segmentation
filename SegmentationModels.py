@@ -357,8 +357,8 @@ def DeepLabV3plus(input_shape: tuple,
              dropout_rate=dropout_rate)
     
     low_level_features = Conv2D(48, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
-    low_level_features = BatchNormalization()(low_level_features)
-    low_level_features = Activation(activation)(low_level_features)
+    # low_level_features = BatchNormalization()(low_level_features)
+    # low_level_features = Activation(activation)(low_level_features)
     
     # Decoder module
     x = UpSampling2D(size=first_upsampling_factor, interpolation='bilinear')(x)
