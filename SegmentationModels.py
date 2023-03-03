@@ -37,6 +37,7 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
         'ResNet50V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block6_1_relu', 'post_relu'),
         'ResNet101V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block4_1_relu', 'conv4_block23_1_relu', 'post_relu'),
         'ResNet152V2': ('conv1_conv', 'conv2_block3_1_relu', 'conv3_block8_1_relu', 'conv4_block36_1_relu', 'post_relu'),
+        # MobileNets
         'MobileNet' : ('conv_pw_1_relu', 'conv_pw_3_relu', 'conv_pw_5_relu', 'conv_pw_11_relu', 'conv_pw_13_relu'),
         'MobileNetV2' : ('block_1_expand_relu', 'block_3_expand_relu', 'block_6_expand_relu', 'block_13_expand_relu', 'out_relu'),
         'MobileNetV3Small' : ('multiply', 're_lu_3', 'multiply_1', 'multiply_11', 'multiply_17'),
@@ -50,8 +51,8 @@ def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool
         'EfficientNetB5': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
         'EfficientNetB6': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
         'EfficientNetB7': ('block2a_expand_activation', 'block3a_expand_activation', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
-        'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
         # EfficientNetV2
+        'EfficientNetV2B0': ('block1a_project_activation', 'block2b_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
         'EfficientNetV2B1': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
         'EfficientNetV2B2': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),
         'EfficientNetV2B3': ('block1b_add', 'block2c_add', 'block4a_expand_activation', 'block6a_expand_activation', 'top_activation'),

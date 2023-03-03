@@ -17,7 +17,8 @@ parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--output_stride', type=int, nargs='?', default=32)
-parser.add_argument('--optimizer', type=str, nargs='?', default='Adam', choices=['Adam', 'Adadelta', 'Nadam', 'AdaBelief', 'SGDW', 'AdamW'])
+parser.add_argument('--optimizer', type=str, nargs='?', default='Adam', choices=['Adam', 'Adadelta', 'Nadam', 'AdaBelief', 'AdamW', 'SGDW'])
+parser.add_argument('--unfreeze_at', type=str, nargs='?')
 parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
@@ -34,6 +35,8 @@ MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
 BACKBONE = args.backbone
 OUTPUT_STRIDE = args.output_stride
+OPTIMIZER_STR = args.optimizer
+UNFREEZE_AT = args.unfreeze_at
 LOSS = args.loss
 BATCH_SIZE = args.batch_size
 ACTIVATION = args.activation
@@ -112,6 +115,40 @@ tensorboard_callback = TensorBoard(log_dir=log_dir,
 callbacks = [model_checkpoint_callback, tensorboard_callback]
 # -------------------------------------------------------------------------------------------
 
+loss_func = eval(LOSS)
+loss = loss_func()
+
+schedule = tf.keras.optimizers.schedules.PolynomialDecay(
+    initial_learning_rate=initial_lr,
+    decay_steps=15*992,
+    end_learning_rate=end_lr,
+    power=2,
+    cycle=False,
+    name=None
+    )
+
+step = tf.Variable(0, trainable=False)
+
+lr_schedule = schedule(step)
+
+weight_decay = 1e-5
+wd_schedule = lambda : weight_decay * schedule(step)
+
+optimizer_dict = {
+    'Adam' : Adam(initial_lr) if BACKBONE is None else Adam(lr_schedule),
+    'Nadam' : Nadam(lr_schedule),
+    'Adadelta' : Adadelta(lr_schedule),
+    'AdamW' : AdamW(learning_rate=lr_schedule, weight_decay=wd_schedule),
+    'AdaBelief' : AdaBelief(learning_rate=lr_schedule, weight_decay=wd_schedule),
+    'SGDW' : SGDW(learning_rate=lr_schedule, weight_decay=wd_schedule, momentum=0.9)
+}
+
+optimizer = optimizer_dict[OPTIMIZER_STR]
+
+mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
+mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
+metrics = [mean_iou_ignore]
+
 # Instantiate Model
 model_function = eval(MODEL_TYPE)
 model = model_function(input_shape=INPUT_SHAPE,
@@ -125,32 +162,6 @@ model = model_function(input_shape=INPUT_SHAPE,
                        )
     
 model.summary()
-
-loss_func = eval(LOSS)
-loss = loss_func()
-
-schedule = tf.keras.optimizers.schedules.PolynomialDecay(
-    initial_learning_rate=initial_lr,
-    decay_steps=15*992,
-    end_learning_rate=end_lr,
-    power=2,
-    cycle=False,
-    name=None
-    )
-
-weight_decay = 1e-5
-wd_schedule = lambda : weight_decay * schedule
-
-optimizer = Adam(initial_lr) if BACKBONE is None else Adam(schedule)
-# optimizer = Nadam(schedule)
-# optimizer = Adadelta(schedule)
-# optimizer = AdamW(schedule, weight_decay=wd_schedule)
-# optimizer = AdaBelief(schedule, weight_decay=wd_schedule)
-# optimizer = SGDW(schedule, momentum=0.9, weight_decay=wd_schedule)
-
-mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
-mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
-metrics = [mean_iou, mean_iou_ignore]
 
 model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
@@ -166,10 +177,10 @@ if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-2, use_patches=False, augment=AUGMENT)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=AUGMENT)
 
     val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-2, use_patches=False, augment=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
@@ -191,7 +202,7 @@ if BACKBONE is not None:
                            dropout_rate=DROPOUT_RATE,
                            backbone_name=BACKBONE,
                            freeze_backbone=False,
-                           unfreeze_at='block6a_expand_activation'
+                           unfreeze_at=UNFREEZE_AT
                            )
     
     # load the saved weights into the model to fine tune the high level features of the feature extractor
