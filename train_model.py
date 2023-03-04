@@ -46,6 +46,9 @@ NUM_CLASSES = args.num_classes
 EPOCHS = args.epochs
 FINAL_EPOCHS = args.final_epochs
 
+# Number of dataset elements
+COUNT = -1
+
 # define other constants
 FILTERS = [16,32,64,128,256]
 INPUT_SHAPE = (1024, 2048, 3)
@@ -82,10 +85,10 @@ else:
 
 # ---------------------------Create Dataset stream--------------------------------
 train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, use_patches=False, augment=False)
 
 val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, use_patches=False, augment=False)
 
 steps_per_epoch = train_ds.cardinality().numpy()
 
@@ -131,7 +134,7 @@ step = tf.Variable(0, trainable=False)
 
 lr_schedule = schedule(step)
 
-weight_decay = 1e-5
+weight_decay = 1e-4
 wd_schedule = lambda : weight_decay * schedule(step)
 
 optimizer_dict = {
@@ -177,10 +180,10 @@ if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=AUGMENT)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, use_patches=False, augment=False)
 
     val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, use_patches=False, augment=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, use_patches=False, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
@@ -211,7 +214,16 @@ if BACKBONE is not None:
     
     model.summary()
     
-    optimizer = Adam(learning_rate=end_lr)
+    optimizer_dict = {
+    'Adam' : Adam(initial_lr),
+    'Nadam' : Nadam(initial_lr),
+    'Adadelta' : Adadelta(initial_lr),
+    'AdamW' : AdamW(learning_rate=initial_lr, weight_decay=5e-5),
+    'AdaBelief' : AdaBelief(learning_rate=initial_lr, weight_decay=5e-5),
+    'SGDW' : SGDW(learning_rate=initial_lr, weight_decay=5e-5, momentum=0.9)
+    }
+
+    optimizer = optimizer_dict[OPTIMIZER_STR]
     
     model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
     

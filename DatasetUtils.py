@@ -254,17 +254,18 @@ class Dataset():
         return ds
 
 
-    def configure_dataset(self, ds, batch: bool, batch_size: int):
+    def configure_dataset(self, ds, batch: bool, batch_size: int, count: int =-1):
         if batch:
             ds = ds.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
+        ds = ds.take(count)
         ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
         return ds
 
 
     def create(self,
                data_path: str,
-               subfolder: str = 'all',
                batch_size: int = 1,
+               count: int = -1,
                use_patches: bool = False,
                augment: bool = False,
                seed = 42):
@@ -273,10 +274,12 @@ class Dataset():
 
         Args:
             - `data_path` (str): The relative or absolute path of the directory containing the dataset folders. 
-            Both `leftImg8bit_trainvaltest` and `gtFine_trainvaltest` directories must be in the `data_path` parent directory.
+                Both `leftImg8bit_trainvaltest` and `gtFine_trainvaltest` directories must be in the `data_path` parent directory.
             - `subfolder` (str, optional): The subfolder to read images from. Defaults to 'all'.
             - `batch_size` (int, optional): The size of each batch of images. Essentially how many images will 
             be processed and will propagate through the network at the same time. Defaults to 1.
+            - `count` (int, optional) : The number of elements i.e. (image, ground_truth) pairs that should be taken from the whole dataset. If count is -1,
+                or if count is greater than the size of the whole dataset, then will contain all elements of this dataset. Defaults to -1.
             - `use_patches` (bool, optional): Whether or not to split the images into smaller patches. 
             Patch size is fixed to (256, 256) and the batch size is fixed to 32. When Defaults to False.
             - `augment` (bool, optional): Whether to use data augmentation or not. Defaults to False.
@@ -290,7 +293,7 @@ class Dataset():
             batch = False
         else:
             batch = True
-        ds = self.dataset_from_path(data_path, subfolder, seed)
+        ds = self.dataset_from_path(data_path, seed)
         ds = self.preprocess_dataset(ds, use_patches, augment, seed)
-        ds = self.configure_dataset(ds, batch, batch_size)
+        ds = self.configure_dataset(ds, batch, batch_size, count)
         return ds
