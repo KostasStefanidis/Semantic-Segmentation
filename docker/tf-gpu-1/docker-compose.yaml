@@ -1,13 +1,13 @@
 services:
   tensorflow:
-    image: tensorflow:2.11.0-gpu
+    image: tensorflow:2.10.1-gpu
     build:
       context: ..
-      dockerfile: tensorflow-2.11.0-gpu.Dockerfile
+      dockerfile: tensorflow-2.10.1-gpu.Dockerfile
       args:
         USERNAME: kstef
       tags:
-        - "tensorflow:2.11.0-gpu"
+        - "tensorflow:2.10.1-gpu"
     container_name: tf-gpu-1
     user: root
     tty: true

@@ -170,35 +170,16 @@ class Dataset():
             label = self.decode_dataset(label_path_ds)
             dataset = tf.data.Dataset.zip((img, label))
         return dataset
-
-
-    def create_patches(self, ds):
-        ds = ds.map(lambda x, y: (tf.expand_dims(x, axis=0), tf.expand_dims(y, axis=0)),
-                    num_parallel_calls=tf.data.AUTOTUNE)
-
-        ds = ds.map(lambda image, label: (tf.image.extract_patches(image, sizes=[1,256,256,1], strides=[1,256,256,1], rates=[1,1,1,1], padding='VALID'),
-                                  tf.image.extract_patches(label, sizes=[1,256,256,1], strides=[1,256,256,1], rates=[1,1,1,1], padding='VALID')),
-                    num_parallel_calls=tf.data.AUTOTUNE)
-        
-        ds = ds.map(lambda image, label: (tf.reshape(image, [32,256,256,3]),
-                                          tf.reshape(label, [32,256,256,1])),
-                    num_parallel_calls=tf.data.AUTOTUNE)
-        
-        ds = ds.map(lambda image, label: (tf.cast(image, tf.uint8), tf.cast(label, tf.uint8)),
-                    num_parallel_calls=tf.data.AUTOTUNE)
-        
-        return ds
-
     
-    def set_shape_for_patches(self, images, labels):
-        images.set_shape((32, 256, 256, 3))
-        labels.set_shape((32, 256, 256, 1))
-        return images, labels
     
-    def set_shape(self, images, labels):
-        images.set_shape((1024, 2048, 3))
-        labels.set_shape((1024, 2048, 1))
-        return images, labels
+    def set_shape_image(self, image):
+        image.set_shape((1024, 2048, 3))
+        return image
+    
+    def set_shape_dataset(self, image, label):
+        image.set_shape((1024, 2048, 3))
+        label.set_shape((1024, 2048, 1))
+        return image, label
     
     
     def preprocess_image(self, image: Tensor):
@@ -234,19 +215,14 @@ class Dataset():
         return label
 
     
-    def preprocess_dataset(self, dataset: tf.data.Dataset, use_patches: bool, augment: bool, seed: int):
-        if use_patches:
-            dataset = self.create_patches(dataset)
-            dataset = dataset.map(self.set_shape_for_patches)
-        else:
-            # the shapes must be explicitly set because tensorflow cannot infer them when reading the data from files
-            dataset = dataset.map(self.set_shape)
-
+    def preprocess_dataset(self, dataset: tf.data.Dataset, augment: bool, seed: int):
         if self.split == 'testing':
+            dataset = dataset.map(self.set_shape_image)
             # in testing split there are only images and no ground truth
             dataset = dataset.map(lambda image: (self.preprocess_image(image)),
                     num_parallel_calls=tf.data.AUTOTUNE)
         else:
+            dataset = dataset.map(self.set_shape_dataset)
             # augmentation is done only for training set
             if augment:
                 dataset = dataset.map(Augment(seed))
