@@ -5,7 +5,7 @@ from keras.optimizers import Adam, SGD, Adadelta, Nadam
 from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
 from keras import mixed_precision
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
-from DatasetUtils import Dataset
+from DatasetUtils import CityscapesDataset
 from EvaluationUtils import MeanIoU
 from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from tensorflow_addons.optimizers import CyclicalLearningRate
@@ -84,11 +84,11 @@ else:
     ignore_class = 19
 
 # ---------------------------Create Dataset stream--------------------------------
-train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, use_patches=False, augment=False)
+train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
 
-val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, use_patches=False, augment=False)
+val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
 
 steps_per_epoch = train_ds.cardinality().numpy()
 
@@ -179,11 +179,11 @@ history = model.fit(train_ds,
 if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
-    train_ds = Dataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, use_patches=False, augment=False)
+    train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
 
-    val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, use_patches=False, augment=False)
+    val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'

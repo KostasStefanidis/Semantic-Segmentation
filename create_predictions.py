@@ -1,5 +1,5 @@
 import tensorflow as tf
-from DatasetUtils import Dataset, color_map
+from DatasetUtils import CityscapesDataset, color_map
 import os
 import numpy as np
 from argparse import ArgumentParser
@@ -41,8 +41,8 @@ rgb_path = f'predictions/{MODEL_NAME}/{SPLIT}/rgb'
 os.makedirs(f'{rgb_path}', exist_ok=True)
 os.makedirs(pred_path, exist_ok=True)
 
-ds = Dataset(NUM_CLASSES, SPLIT, PREPROCESSING, shuffle=False)
-ds = ds.create(data_path, 'all', BATCH_SIZE, use_patches=False, augment=False)
+ds = CityscapesDataset(NUM_CLASSES, SPLIT, PREPROCESSING, shuffle=False)
+ds = ds.create(data_path, 'all', BATCH_SIZE, augment=False)
 
 # add val set filenames into a python list
 img_path_ds = tf.data.Dataset.list_files(f'{data_path}/leftImg8bit_trainvaltest/leftImg8bit/{SPLIT}/*/*.png', shuffle=False)

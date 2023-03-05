@@ -82,7 +82,7 @@ class Augment(tf.keras.layers.Layer):
         return model
 
 
-class Dataset():
+class CityscapesDataset():
     def __init__(self,
                  num_classes: int, 
                  split: str, 
@@ -163,7 +163,7 @@ class Dataset():
         img_path_ds = tf.data.Dataset.list_files(img_path, seed=seed, shuffle=shuffle)
         img = self.decode_dataset(img_path_ds)
         
-        if self.split == 'testing':
+        if self.split == 'test':
             dataset = img
         else:
             label_path_ds = tf.data.Dataset.list_files(label_path, seed=seed, shuffle=shuffle)
@@ -216,7 +216,7 @@ class Dataset():
 
     
     def preprocess_dataset(self, dataset: tf.data.Dataset, augment: bool, seed: int):
-        if self.split == 'testing':
+        if self.split == 'test':
             dataset = dataset.map(self.set_shape_image)
             # in testing split there are only images and no ground truth
             dataset = dataset.map(lambda image: (self.preprocess_image(image)),
@@ -244,9 +244,9 @@ class Dataset():
 
     def create(self,
                data_path: str,
+               subfolder: str = 'all',
                batch_size: int = 1,
                count: int = -1,
-               subfolder: str = 'all',
                augment: bool = False,
                seed = 42):
         """ Create a dataset generator. The pre-processing pipeline consists of 1) optionally splitting each image to smaller patches, 2) optionally augmenting each image

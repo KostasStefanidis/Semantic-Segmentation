@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from keras import backend as K
-from DatasetUtils import Dataset
+from DatasetUtils import CityscapesDataset
 from EvaluationUtils import MeanIoU
 import os
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -60,8 +60,8 @@ class_names = ['road', 'sidewalk', 'building', 'wall', 'fence',
                'terrain', 'sky', 'person', 'rider', 'car', 'truck',
                'bus', 'train', 'motorcycle', 'bicycle', 'void']
 
-val_ds = Dataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, use_patches=False, augment=False)
+val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+val_ds = val_ds.create(data_path=DATA_PATH)
 
 loss_func = eval(LOSS)
 loss = loss_func()
