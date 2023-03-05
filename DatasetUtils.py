@@ -83,7 +83,12 @@ class Augment(tf.keras.layers.Layer):
 
 
 class Dataset():
-    def __init__(self, num_classes: int, split:str, preprocessing='default', mode='fine', shuffle=True):
+    def __init__(self,
+                 num_classes: int, 
+                 split: str, 
+                 preprocessing: str = 'default', 
+                 mode: str = 'fine', 
+                 shuffle=True):
         """
         Instantiate a Dataset object. Next call the `create()` method to create a pipeline that contains 
         parsing, decoding and preprossecing of the dataset images which yields, image and ground truth image
@@ -101,8 +106,6 @@ class Dataset():
         
         assert split in ['train', 'val', 'test'], f'The split arguement must one of: "train", "val", "test", instead the value passed was {split}'
         assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value passed was {num_classes}'
-        assert preprocessing in ['default', 'ResNet', "ResNetV2", 'EfficientNet', 'EfficientNetV2'], \
-            f'The preprocessing arguement must one of: "default", "ResNet", "ResNetV2", "EfficientNet", "EfficientNetV2", instead the value passed was {preprocessing}'
         
         self.num_classes = num_classes
         self.split = split
@@ -128,7 +131,7 @@ class Dataset():
     def construct_path(self, data_path: str, subfolder: str):
         if subfolder == 'all':
             subfolder = '*'
-            
+        
         if self.mode == 'fine':
             image_path = data_path + self.img_path + self.split + '/' + subfolder + '/' + self.img_suffix
             label_path = data_path + self.label_path + self.split + '/' + subfolder + '/' + self.label_suffix
@@ -144,7 +147,7 @@ class Dataset():
         return ds
 
 
-    def dataset_from_path(self, data_path: str, subfolder: str, seed: int):
+    def dataset_from_path(self, data_path: str, subfolder, seed: int):
         img_path, label_path = self.construct_path(data_path, subfolder)
         
         # either shuffle=None and the shuffling is done by passing a seed to the random generator
@@ -158,13 +161,14 @@ class Dataset():
         
         # Create a dataset of strings corresponding to file names matching img_path    
         img_path_ds = tf.data.Dataset.list_files(img_path, seed=seed, shuffle=shuffle)
-        label_path_ds = tf.data.Dataset.list_files(label_path, seed=seed, shuffle=shuffle)
-        
-        # read and decode files
         img = self.decode_dataset(img_path_ds)
-        label = self.decode_dataset(label_path_ds)
         
-        dataset = tf.data.Dataset.zip((img, label))
+        if self.split == 'testing':
+            dataset = img
+        else:
+            label_path_ds = tf.data.Dataset.list_files(label_path, seed=seed, shuffle=shuffle)
+            label = self.decode_dataset(label_path_ds)
+            dataset = tf.data.Dataset.zip((img, label))
         return dataset
 
 
@@ -230,36 +234,37 @@ class Dataset():
         return label
 
     
-    def preprocess_dataset(self, ds, use_patches: bool, augment: bool, seed: int):
+    def preprocess_dataset(self, dataset: tf.data.Dataset, use_patches: bool, augment: bool, seed: int):
         if use_patches:
-            ds = self.create_patches(ds)
-            ds = ds.map(self.set_shape_for_patches)
+            dataset = self.create_patches(dataset)
+            dataset = dataset.map(self.set_shape_for_patches)
         else:
             # the shapes must be explicitly set because tensorflow cannot infer them when reading the data from files
-            ds = ds.map(self.set_shape)
+            dataset = dataset.map(self.set_shape)
 
-        if augment:
-            ds = ds.map(Augment(seed))
-            ds = ds.map(lambda image, label: (image, tf.cast(label, tf.uint8)), 
-                        num_parallel_calls=tf.data.AUTOTUNE)
-        
-        ds = ds.map(lambda image, label: (self.preprocess_image(image), label),
+        if self.split == 'testing':
+            # in testing split there are only images and no ground truth
+            dataset = dataset.map(lambda image: (self.preprocess_image(image)),
                     num_parallel_calls=tf.data.AUTOTUNE)
-        
-        # no pre-processing on the labels of the test set
-        # no evaluation can be done on the test set, only prediction
-        if self.split != 'test':
-            ds = ds.map(lambda image, label: (image, self.preprocess_label(label)),
-                        num_parallel_calls=tf.data.AUTOTUNE)         
-        return ds
+        else:
+            # augmentation is done only for training set
+            if augment:
+                dataset = dataset.map(Augment(seed))
+                dataset = dataset.map(lambda image, label: (image, tf.cast(label, tf.uint8)), 
+                            num_parallel_calls=tf.data.AUTOTUNE)
+            
+            dataset = dataset.map(lambda image, label: (self.preprocess_image(image), self.preprocess_label(label)),
+                        num_parallel_calls=tf.data.AUTOTUNE)
+
+        return dataset
 
 
-    def configure_dataset(self, ds, batch: bool, batch_size: int, count: int =-1):
+    def configure_dataset(self, dataset: tf.data.Dataset, batch: bool, batch_size: int, count: int =-1):
         if batch:
-            ds = ds.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
-        ds = ds.take(count)
-        ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
-        return ds
+            dataset = dataset.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset = dataset.take(count)
+        dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+        return dataset
 
 
     def create(self,
@@ -284,7 +289,7 @@ class Dataset():
             Patch size is fixed to (256, 256) and the batch size is fixed to 32. When Defaults to False.
             - `augment` (bool, optional): Whether to use data augmentation or not. Defaults to False.
             - `seed` (int, optional): The seed used for the shuffling of the dataset elements.
-            This value will also be used as a seed for the random transformations during augmentation. Defaults to 42.
+                This value will also be used as a seed for the random transformations during augmentation. Defaults to 42.
 
         Returns:
             tf.data.Dataset
@@ -293,7 +298,7 @@ class Dataset():
             batch = False
         else:
             batch = True
-        ds = self.dataset_from_path(data_path, seed)
-        ds = self.preprocess_dataset(ds, use_patches, augment, seed)
-        ds = self.configure_dataset(ds, batch, batch_size, count)
-        return ds
+        dataset = self.dataset_from_path(data_path, seed)
+        dataset = self.preprocess_dataset(dataset, use_patches, augment, seed)
+        dataset = self.configure_dataset(dataset, batch, batch_size, count)
+        return dataset
