@@ -94,7 +94,6 @@ class Dataset():
         parsing, decoding and preprossecing of the dataset images which yields, image and ground truth image
         pairs to feed into the network for either training, evalution or inference.
         
-        
         Args:
             - `num_classes` (int): Number of classes. Available options: 20 or 34.
             - `split` (str): The split of the dataset to be used. Must be one of `"train"`, `"val"` or `"test"`.
@@ -105,7 +104,7 @@ class Dataset():
         """
         
         assert split in ['train', 'val', 'test'], f'The split arguement must one of: "train", "val", "test", instead the value passed was {split}'
-        assert num_classes in [20, 34], f'The num_classes argument must be either 20 or 34, instead the value passed was {num_classes}'
+        
         
         self.num_classes = num_classes
         self.split = split
@@ -120,6 +119,7 @@ class Dataset():
         if self.mode == 'fine':
             self.img_path = 'leftImg8bit_trainvaltest/leftImg8bit/'
             self.label_path = 'gtFine_trainvaltest/gtFine/'
+            
         elif self.mode == 'coarse':
             self.img_path = 'leftImg8bit/train_extra/'
             self.label_path = 'gtCoarse/train_extra/'
@@ -235,9 +235,8 @@ class Dataset():
         return dataset
 
 
-    def configure_dataset(self, dataset: tf.data.Dataset, batch: bool, batch_size: int, count: int =-1):
-        if batch:
-            dataset = dataset.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
+    def configure_dataset(self, dataset: tf.data.Dataset, batch_size: int, count: int =-1):
+        dataset = dataset.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.take(count)
         dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
         return dataset
@@ -247,7 +246,6 @@ class Dataset():
                data_path: str,
                batch_size: int = 1,
                count: int = -1,
-               use_patches: bool = False,
                augment: bool = False,
                seed = 42):
         """ Create a dataset generator. The pre-processing pipeline consists of 1) optionally splitting each image to smaller patches, 2) optionally augmenting each image
@@ -270,11 +268,8 @@ class Dataset():
         Returns:
             tf.data.Dataset
         """
-        if use_patches:
-            batch = False
-        else:
-            batch = True
+
         dataset = self.dataset_from_path(data_path, seed)
-        dataset = self.preprocess_dataset(dataset, use_patches, augment, seed)
-        dataset = self.configure_dataset(dataset, batch, batch_size, count)
+        dataset = self.preprocess_dataset(dataset, augment, seed)
+        dataset = self.configure_dataset(dataset, batch_size, count)
         return dataset
