@@ -246,6 +246,7 @@ class Dataset():
                data_path: str,
                batch_size: int = 1,
                count: int = -1,
+               subfolder: str = 'all',
                augment: bool = False,
                seed = 42):
         """ Create a dataset generator. The pre-processing pipeline consists of 1) optionally splitting each image to smaller patches, 2) optionally augmenting each image
@@ -269,7 +270,7 @@ class Dataset():
             tf.data.Dataset
         """
 
-        dataset = self.dataset_from_path(data_path, seed)
+        dataset = self.dataset_from_path(data_path, subfolder, seed)
         dataset = self.preprocess_dataset(dataset, augment, seed)
         dataset = self.configure_dataset(dataset, batch_size, count)
         return dataset
