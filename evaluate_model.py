@@ -42,10 +42,20 @@ if BACKBONE == 'None':
     BACKBONE = None
 elif 'ResNet' in BACKBONE:
     PREPROCESSING = 'ResNet'
+    if 'V2' in BACKBONE:
+        PREPROCESSING = 'ResNetV2'
 elif 'EfficientNet' in BACKBONE:
     PREPROCESSING = 'EfficientNet'
 elif 'EfficientNetV2' in BACKBONE:
     PREPROCESSING = 'EfficientNetV2'
+elif 'MobileNet' == BACKBONE:
+    PREPROCESSING = 'MobileNet'
+elif 'MobileNetV2' == BACKBONE:
+    PREPROCESSING = 'MobileNetV2'
+elif 'MobileNetV3' in BACKBONE:
+    PREPROCESSING = 'MobileNetV3'
+elif 'RegNet' in BACKBONE:
+    PREPROCESSING = 'RegNet'
 else:
     raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
