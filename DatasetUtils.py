@@ -1,85 +1,8 @@
 import tensorflow as tf
-from keras.models import Sequential
 from tensorflow import Tensor
-import random
-from keras.layers import RandomFlip, RandomBrightness, RandomContrast
-import tensorflow_addons as tfa
-from keras.layers.preprocessing.image_preprocessing import BaseImageAugmentationLayer
 from keras.applications import resnet, resnet_v2, efficientnet, efficientnet_v2, regnet
 from keras.applications import mobilenet, mobilenet_v2, mobilenet_v3
-
-# dictionary that contains the mapping of the class numbers to rgb color values
-color_map =  {0: [0, 0, 0],
-              1: [0, 0, 0],
-              2: [0, 0, 0],
-              3: [0, 0, 0],
-              4: [0, 0, 0],
-              5: [111, 74, 0],
-              6: [81, 0, 81],
-              7: [128, 64,128],
-              8: [244, 35,232],
-              9: [250,170,160],
-              10: [230,150,140],
-              11: [ 70, 70, 70],
-              12: [102,102,156],
-              13: [190,153,153],
-              14: [180,165,180],
-              15: [150,100,100],
-              16: [150,120, 90],
-              17: [153,153,153],
-              18: [153,153,153],
-              19: [250,170, 30],
-              20: [220,220,  0],
-              21: [107,142, 35],
-              22: [152,251,152],
-              23: [70,130,180],
-              24: [220, 20, 60],
-              25: [255,  0,  0],
-              26: [0,  0,142],
-              27: [0,  0, 70],
-              28: [0, 60,100],
-              29: [0, 60,100],
-              30: [0,  0,110],
-              31: [0, 80,100],
-              32: [0,  0,230],
-              33: [119, 11, 32]
-              }
-
-class RandomGaussianBlur(BaseImageAugmentationLayer):
-    def __init__(self, max_sigma: float, min_kernel_size: int, max_kernel_size: int) -> None:
-        super(RandomGaussianBlur, self).__init__()
-        while(True):
-            size = random.randint(min_kernel_size, max_kernel_size)
-            if size%2==1:
-                break
-        self.kernel_size = (size, size)        
-        if isinstance(max_sigma, (float, int)):
-            self.sigma = random.uniform(0.0, max_sigma)
-
-    def call(self, image):
-        blured_image = tfa.image.gaussian_filter2d(image, filter_shape=self.kernel_size, sigma=self.sigma)
-        return blured_image
-
-class Augment(tf.keras.layers.Layer):
-    def __init__(self, seed):
-        super().__init__()
-        #both use the same seed, so they'll make the same random changes.
-        self.augment_images = self.augment(seed, mode='image')
-        self.augment_gt_images = self.augment(seed, mode='label')
-
-    def call(self, inputs, labels):
-        inputs = self.augment_images(inputs)
-        labels = self.augment_gt_images(labels)
-        return inputs, labels
-    
-    def augment(self, seed, mode):
-        model = Sequential()
-        model.add(RandomFlip("horizontal", seed=seed))
-        if mode=='image':
-            model.add(RandomBrightness(0.15, seed=seed))
-            model.add(RandomContrast(0.25, seed=seed))
-            model.add(RandomGaussianBlur(max_sigma=2, min_kernel_size=3, max_kernel_size=11))        
-        return model
+from AugmentationUtils import Augment
 
 
 class CityscapesDataset():
@@ -274,3 +197,42 @@ class CityscapesDataset():
         dataset = self.preprocess_dataset(dataset, augment, seed)
         dataset = self.configure_dataset(dataset, batch_size, count)
         return dataset
+    
+    
+    
+# dictionary that contains the mapping of the class numbers to rgb color values
+color_map =  {0: [0, 0, 0],
+              1: [0, 0, 0],
+              2: [0, 0, 0],
+              3: [0, 0, 0],
+              4: [0, 0, 0],
+              5: [111, 74, 0],
+              6: [81, 0, 81],
+              7: [128, 64,128],
+              8: [244, 35,232],
+              9: [250,170,160],
+              10: [230,150,140],
+              11: [ 70, 70, 70],
+              12: [102,102,156],
+              13: [190,153,153],
+              14: [180,165,180],
+              15: [150,100,100],
+              16: [150,120, 90],
+              17: [153,153,153],
+              18: [153,153,153],
+              19: [250,170, 30],
+              20: [220,220,  0],
+              21: [107,142, 35],
+              22: [152,251,152],
+              23: [70,130,180],
+              24: [220, 20, 60],
+              25: [255,  0,  0],
+              26: [0,  0,142],
+              27: [0,  0, 70],
+              28: [0, 60,100],
+              29: [0, 60,100],
+              30: [0,  0,110],
+              31: [0, 80,100],
+              32: [0,  0,230],
+              33: [119, 11, 32]
+              }
