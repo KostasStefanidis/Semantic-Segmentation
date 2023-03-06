@@ -5,6 +5,7 @@ numArg=$#
 HELP=false
 
 # set Default values
+DATASET=Cityscapes
 TRAIN_OUTPUT_STRIDE=32
 EVAL_OUTPUT_STRIDE=32
 OPTIMIZER=Adam
@@ -24,6 +25,11 @@ do
     if [ "$1" == "-h" ] || [ "$1" == "--help" ]
         then
             HELP=true
+        fi
+
+    if [ "$1" == "--dataset" ]
+        then
+            DATASET=$2
         fi
 
     if [ "$1" == "-d" ] || [ "$1" == "--data-path" ]
@@ -156,7 +162,7 @@ main(){
     then
         python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride $TRAIN_OUTPUT_STRIDE\
         --loss $LOSS --batch_size $BATCH_SIZE --activation $ACTIVATION --dropout $DROPOUT_RATE --augment $AUGMENT --epochs $EPOCHS --final_epochs $FINAL_EPOCHS\
-        --optimizer $OPTIMIZER --unfreeze_at $UNFREEZE_AT
+        --optimizer $OPTIMIZER --unfreeze_at $UNFREEZE_AT --dataset $DATASET
     fi
 
     #Evaluate model

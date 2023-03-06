@@ -6,6 +6,7 @@ from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
 from keras import mixed_precision
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
 from CityscapesUtils import CityscapesDataset
+from MapillaryUtils import MapillaryDataset
 from EvaluationUtils import MeanIoU
 from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from tensorflow_addons.optimizers import CyclicalLearningRate
@@ -13,24 +14,25 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser('')
 parser.add_argument('--data_path', type=str, nargs='?', required=True)
+parser.add_argument('--dataset', type=str, nargs='?', default='Cityscapes', choices=['Cityscapes', 'Mapillary'])
 parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'Unet_plus', 'DeepLabV3plus'])
 parser.add_argument('--model_name', type=str, nargs='?', required=True)
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--output_stride', type=int, nargs='?', default=32)
-parser.add_argument('--optimizer', type=str, nargs='?', default='Adam', choices=['Adam', 'Adadelta', 'Nadam', 'AdaBelief', 'AdamW', 'SGDW'])
 parser.add_argument('--unfreeze_at', type=str, nargs='?')
-parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
-parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
 parser.add_argument('--dropout', type=float, nargs='?', default=0.0)
+parser.add_argument('--optimizer', type=str, nargs='?', default='Adam', choices=['Adam', 'Adadelta', 'Nadam', 'AdaBelief', 'AdamW', 'SGDW'])
+parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
+parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--augment', type=bool, nargs='?', default=False)
-parser.add_argument('--num_classes', type=int, nargs='?', default='20', choices=[20,34])
 parser.add_argument('--epochs', type=int, nargs='?', default='20')
 parser.add_argument('--final_epochs', type=int, nargs='?', default='60')
 args = parser.parse_args()
 
 # parse arguments
 DATA_PATH = args.data_path
+DATASET = args.dataset
 MODEL_TYPE = args.model_type
 MODEL_NAME = args.model_name
 BACKBONE = args.backbone
@@ -42,16 +44,34 @@ BATCH_SIZE = args.batch_size
 ACTIVATION = args.activation
 DROPOUT_RATE = args.dropout
 AUGMENT = args.augment
-NUM_CLASSES = args.num_classes
 EPOCHS = args.epochs
 FINAL_EPOCHS = args.final_epochs
+
+mapillary_version = 'v1.2'
+
+if DATASET == 'Cityscapes':
+    NUM_CLASSES = 20
+    ignore_class = 19
+    INPUT_SHAPE = (1024, 2048, 3)
+elif DATASET == 'Mapillary':
+    INPUT_SHAPE = (1024, 1856, 3)
+    if mapillary_version == 'v1.2':
+        NUM_CLASSES = 64
+        ignore_class = 63
+    elif mapillary_version == 'v2.0':
+        NUM_CLASSES = 118
+        ignore_class = 117
+    else:
+        raise ValueError('Version of the Mapillary Vistas dataset should be either v1.2 or v2.0!')
+else:
+    raise ValueError(F'{DATASET} dataset is invalid. Available Datasets are: Cityscapes, Mapillary!')
 
 # Number of dataset elements
 COUNT = -1
 
 # define other constants
 FILTERS = [16,32,64,128,256]
-INPUT_SHAPE = (1024, 2048, 3)
+
 initial_lr = 0.001
 end_lr = 0.0001
 
@@ -77,18 +97,35 @@ elif 'RegNet' in BACKBONE:
 else:
     raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
-ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
-if NUM_CLASSES==34:
-    ignore_class = ignore_ids
-else:
-    ignore_class = 19
+# ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
+# if NUM_CLASSES==34:
+#     ignore_class = ignore_ids
+# else:
+#     ignore_class = 19
 
 # ---------------------------Create Dataset stream--------------------------------
-train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
+if DATASET == 'Cityscapes':
+    train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
 
-val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
+    val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
+    
+elif DATASET == 'Mapillary':
+    train_ds = MapillaryDataset(height=1024, width=1856,
+                                split='training',
+                                preprocessing=PREPROCESSING,
+                                version='v1.2',
+                                shuffle=True)
+    train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+
+    val_ds = MapillaryDataset(height=1024, width=1856,
+                                split='validation',
+                                preprocessing=PREPROCESSING,
+                                version='v1.2',
+                                shuffle=True)
+    val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+
 
 steps_per_epoch = train_ds.cardinality().numpy()
 
@@ -100,7 +137,7 @@ else:
     save_best_only = False
     save_freq = int(EPOCHS*steps_per_epoch) # save the model only at the last epoch of the main training
 
-checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
+checkpoint_filepath = f'saved_models/{DATASET}/{MODEL_TYPE}/{MODEL_NAME}'
 model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                             save_weights_only=False,
                                             monitor='val_MeanIoU_ignore',
@@ -109,7 +146,7 @@ model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,
                                             save_best_only=save_best_only,
                                             verbose=0)
 
-log_dir = f'Tensorboard_logs/{MODEL_TYPE}/{MODEL_NAME}'
+log_dir = f'Tensorboard_logs/{DATASET}/{MODEL_TYPE}/{MODEL_NAME}'
 tensorboard_callback = TensorBoard(log_dir=log_dir,
                                    histogram_freq=0,
                                    write_graph=False,
@@ -121,7 +158,7 @@ callbacks = [model_checkpoint_callback, tensorboard_callback]
 loss_func = eval(LOSS)
 loss = loss_func()
 
-schedule = tf.keras.optimizers.schedules.PolynomialDecay(
+lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     initial_learning_rate=initial_lr,
     decay_steps=15*992,
     end_learning_rate=end_lr,
@@ -130,20 +167,13 @@ schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     name=None
     )
 
-step = tf.Variable(0, trainable=False)
-
-lr_schedule = schedule(step)
-
-wd = 5e-5
-wd_schedule = lambda : wd * schedule(step)
-
 optimizer_dict = {
-    'Adam' : Adam(initial_lr) if BACKBONE is None else Adam(lr_schedule),
+    'Adam' : Adam(lr_schedule),
     'Nadam' : Nadam(lr_schedule),
     'Adadelta' : Adadelta(lr_schedule),
-    'AdamW' : AdamW(learning_rate=lr_schedule, weight_decay=wd),
-    'AdaBelief' : AdaBelief(learning_rate=lr_schedule, weight_decay=wd),
-    'SGDW' : SGDW(learning_rate=lr_schedule, weight_decay=wd, momentum=0.9)
+    'AdamW' : AdamW(learning_rate=lr_schedule),
+    'AdaBelief' : AdaBelief(learning_rate=lr_schedule),
+    'SGDW' : SGDW(learning_rate=lr_schedule, momentum=0.9)
 }
 
 optimizer = optimizer_dict[OPTIMIZER_STR]
@@ -163,7 +193,7 @@ model = model_function(input_shape=INPUT_SHAPE,
                        backbone_name=BACKBONE,
                        freeze_backbone=True
                        )
-    
+
 model.summary()
 
 model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
@@ -179,11 +209,27 @@ history = model.fit(train_ds,
 if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
-    train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
+    if DATASET == 'Cityscapes':
+        train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
+        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
 
-    val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
+        val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
+        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
+        
+    elif DATASET == 'Mapillary':
+        train_ds = MapillaryDataset(height=1024, width=1856,
+                                    split='training',
+                                    preprocessing=PREPROCESSING,
+                                    version='v1.2',
+                                    shuffle=True)
+        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+
+        val_ds = MapillaryDataset(height=1024, width=1856,
+                                    split='validation',
+                                    preprocessing=PREPROCESSING,
+                                    version='v1.2',
+                                    shuffle=True)
+        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
@@ -214,6 +260,7 @@ if BACKBONE is not None:
     
     model.summary()
     
+    wd = 2e-5
     optimizer_dict = {
     'Adam' : Adam(end_lr),
     'Nadam' : Nadam(end_lr),
