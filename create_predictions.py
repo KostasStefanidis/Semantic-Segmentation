@@ -1,5 +1,5 @@
 import tensorflow as tf
-from DatasetUtils import CityscapesDataset, color_map
+from CityscapesUtils import CityscapesDataset, color_map
 import os
 import numpy as np
 from argparse import ArgumentParser

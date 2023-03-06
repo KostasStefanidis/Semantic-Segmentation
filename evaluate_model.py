@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from keras import backend as K
-from DatasetUtils import CityscapesDataset
+from CityscapesUtils import CityscapesDataset
 from EvaluationUtils import MeanIoU
 import os
 from sklearn.metrics import ConfusionMatrixDisplay
