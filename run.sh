@@ -136,6 +136,7 @@ displayHelp(){
     echo ''
     echo 'Options:'
     echo '  -h, --help               Display help'
+    echo '      --dataset            Which dataset to use. (Cityscapes, Mapillary) (default: Cityscapes)'
     echo '  -d, --data-path          The root directory of the dataset'
     echo '  -t, --model-type         Model type'
     echo '  -n, --model-name         The name the model will have'
