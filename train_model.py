@@ -134,16 +134,16 @@ step = tf.Variable(0, trainable=False)
 
 lr_schedule = schedule(step)
 
-weight_decay = 1e-4
-wd_schedule = lambda : weight_decay * schedule(step)
+wd = 5e-5
+wd_schedule = lambda : wd * schedule(step)
 
 optimizer_dict = {
     'Adam' : Adam(initial_lr) if BACKBONE is None else Adam(lr_schedule),
     'Nadam' : Nadam(lr_schedule),
     'Adadelta' : Adadelta(lr_schedule),
-    'AdamW' : AdamW(learning_rate=lr_schedule, weight_decay=wd_schedule),
-    'AdaBelief' : AdaBelief(learning_rate=lr_schedule, weight_decay=wd_schedule),
-    'SGDW' : SGDW(learning_rate=lr_schedule, weight_decay=wd_schedule, momentum=0.9)
+    'AdamW' : AdamW(learning_rate=lr_schedule, weight_decay=wd),
+    'AdaBelief' : AdaBelief(learning_rate=lr_schedule, weight_decay=wd),
+    'SGDW' : SGDW(learning_rate=lr_schedule, weight_decay=wd, momentum=0.9)
 }
 
 optimizer = optimizer_dict[OPTIMIZER_STR]
@@ -215,12 +215,12 @@ if BACKBONE is not None:
     model.summary()
     
     optimizer_dict = {
-    'Adam' : Adam(initial_lr),
-    'Nadam' : Nadam(initial_lr),
-    'Adadelta' : Adadelta(initial_lr),
-    'AdamW' : AdamW(learning_rate=initial_lr, weight_decay=5e-5),
-    'AdaBelief' : AdaBelief(learning_rate=initial_lr, weight_decay=5e-5),
-    'SGDW' : SGDW(learning_rate=initial_lr, weight_decay=5e-5, momentum=0.9)
+    'Adam' : Adam(end_lr),
+    'Nadam' : Nadam(end_lr),
+    'Adadelta' : Adadelta(end_lr),
+    'AdamW' : AdamW(learning_rate=end_lr, weight_decay=wd),
+    'AdaBelief' : AdaBelief(learning_rate=end_lr, weight_decay=wd),
+    'SGDW' : SGDW(learning_rate=end_lr, weight_decay=wd, momentum=0.9)
     }
 
     optimizer = optimizer_dict[OPTIMIZER_STR]
