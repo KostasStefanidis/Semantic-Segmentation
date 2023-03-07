@@ -19,15 +19,16 @@ RUN apt-get install git -y \
 && apt-get install wget -y \
 && apt install screen -y
 
+RUN git config --global user.name $USERNAME \
+&& git config --global user.email kstefanidis48@gmail.com
+
 # install usefull python packages
 RUN pip install --upgrade pip \
 && pip install ipython \
 && pip install ipykernel \ 
-&& pip install tensorflow-addons \
+&& pip install tensorflow-addons-0.19.0 \
 && pip install scipy \
 && pip install pandas \
 && pip install matplotlib \
-&& pip install -U scikit-learn
-
-RUN git config --global user.name $USERNAME \
-&& git config --global user.email kstefanidis48@gmail.com
+&& pip install -U scikit-learn \
+&& pip install PyYAML

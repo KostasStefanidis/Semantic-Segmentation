@@ -21,7 +21,12 @@ EVAL=true
 PREDICT=false
 
 for ((i=1 ; i <= $numArg ; i++))
-do
+do  
+    if [ "$1" == "--config" ]
+        then
+            CONFIG=$2
+        fi
+
     if [ "$1" == "-h" ] || [ "$1" == "--help" ]
         then
             HELP=true
@@ -157,7 +162,35 @@ displayHelp(){
     echo '  -p, --predict            Whether to make predictions or not for val and test sets after training and evaluating the model.'
 }
 
-main(){
+
+main_with_config(){
+    # train model
+    if [ $TRAIN = 'true' ]
+    then
+        python3 train_model.py --config $CONFIG
+    fi
+
+    #Evaluate model
+    if [ $EVAL = 'true' ]
+    then
+        mkdir -p -m=776 Evaluation_logs/$MODEL_TYPE
+        python3 evaluate_model.py --config $CONFIG
+    fi
+
+    if [ $PREDICT = 'true' ]
+    then
+        # make predictions with the validation set and convert them to rgb
+        python3 create_predictions.py --config $CONFIG --split "val"
+
+        # make predictions with the test set and convert them to rgb
+        python3 create_predictions.py --config $CONFIG --split "test"
+
+        # zip the generated images and place the compressed file into the archives folder
+        zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL
+    fi
+}
+
+main_with_args(){
     # train model
     if [ $TRAIN = 'true' ]
     then
@@ -181,18 +214,18 @@ main(){
         python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"
 
         # make predictions with the test set and convert them to rgb
-        python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
+        #python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
-        zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL
+        #zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL
     fi
 }
 
 if [ $HELP = 'true' ]
 then
     displayHelp
-else
-
+elif [ -z "$CONFIG" ]
+then
     if [ -z "$DATA_PATH" ]
     then
         echo 'No Data path defined. Use the -d or --data-path option.'
@@ -223,5 +256,7 @@ else
         exit 125
     fi
 
-    main
+    main_with_args
+else
+    main_with_config
 fi

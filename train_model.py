@@ -11,70 +11,117 @@ from EvaluationUtils import MeanIoU
 from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from tensorflow_addons.optimizers import CyclicalLearningRate
 from argparse import ArgumentParser
+import yaml
 
 parser = ArgumentParser('')
-parser.add_argument('--data_path', type=str, nargs='?', required=True)
+parser.add_argument('--config', type=str, nargs='?')
+parser.add_argument('--data_path', type=str, nargs='?')
 parser.add_argument('--dataset', type=str, nargs='?', default='Cityscapes', choices=['Cityscapes', 'Mapillary'])
-parser.add_argument('--model_type', type=str, nargs='?', required=True, choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'Unet_plus', 'DeepLabV3plus'])
-parser.add_argument('--model_name', type=str, nargs='?', required=True)
+parser.add_argument('--model_type', type=str, nargs='?', choices=['Unet', 'Residual_Unet', 'Attention_Unet', 'Unet_plus', 'DeepLabV3plus'])
+parser.add_argument('--model_name', type=str, nargs='?')
 parser.add_argument('--backbone', type=str, nargs='?', default='None')
 parser.add_argument('--output_stride', type=int, nargs='?', default=32)
 parser.add_argument('--unfreeze_at', type=str, nargs='?')
 parser.add_argument('--activation', type=str, nargs='?', default='relu')
 parser.add_argument('--dropout', type=float, nargs='?', default=0.0)
 parser.add_argument('--optimizer', type=str, nargs='?', default='Adam', choices=['Adam', 'Adadelta', 'Nadam', 'AdaBelief', 'AdamW', 'SGDW'])
-parser.add_argument('--loss', type=str, nargs='?', default='dice', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
+parser.add_argument('--loss', type=str, nargs='?', default='FocalHybridLoss', choices=['DiceLoss', 'IoULoss', 'TverskyLoss', 'FocalTverskyLoss', 'HybridLoss', 'FocalHybridLoss'])
 parser.add_argument('--batch_size', type=int, nargs='?', default='3')
 parser.add_argument('--augment', type=bool, nargs='?', default=False)
 parser.add_argument('--epochs', type=int, nargs='?', default='20')
 parser.add_argument('--final_epochs', type=int, nargs='?', default='60')
 args = parser.parse_args()
 
-# parse arguments
-DATA_PATH = args.data_path
-DATASET = args.dataset
-MODEL_TYPE = args.model_type
-MODEL_NAME = args.model_name
-BACKBONE = args.backbone
-OUTPUT_STRIDE = args.output_stride
-OPTIMIZER_STR = args.optimizer
-UNFREEZE_AT = args.unfreeze_at
-LOSS = args.loss
-BATCH_SIZE = args.batch_size
-ACTIVATION = args.activation
-DROPOUT_RATE = args.dropout
-AUGMENT = args.augment
-EPOCHS = args.epochs
-FINAL_EPOCHS = args.final_epochs
 
-mapillary_version = 'v1.2'
+if args.config is None:
+    # parse arguments
+    print('Reading configuration from cmd args')
+    DATA_PATH = args.data_path
+    DATASET = args.dataset
+    MODEL_TYPE = args.model_type
+    MODEL_NAME = args.model_name
+    BACKBONE = args.backbone
+    OUTPUT_STRIDE = args.output_stride
+    OPTIMIZER_NAME = args.optimizer
+    UNFREEZE_AT = args.unfreeze_at
+    LOSS = args.loss
+    BATCH_SIZE = args.batch_size
+    ACTIVATION = args.activation
+    DROPOUT_RATE = args.dropout
+    AUGMENT = args.augment
+    EPOCHS = args.epochs
+    FINAL_EPOCHS = args.final_epochs
+    
+else:
+    # Read YAML file
+    print('Reading configuration from config yaml')
+    
+    with open(args.config, 'r') as config_file:
+        config = yaml.safe_load(config_file)
+
+    LOGS_DIR = config['logs_dir']
+
+    model_config = config['model']
+    dataset_config = config['dataset']
+    train_config = config['train_config']
+
+    # Dataset Configuration
+    DATASET = dataset_config['name']
+    DATA_PATH = dataset_config['path']
+    VERSION = dataset_config['version']
+    NUM_TRAIN_IMAGES = dataset_config['num_train_images']
+    NUM_EVAL_IMAGES = dataset_config['num_eval_images']
+
+    # Model Configuration
+    MODEL_TYPE = model_config['architecture']
+    MODEL_NAME = model_config['name']
+    BACKBONE = model_config['backbone']
+    UNFREEZE_AT = model_config['unfreeze_at']
+    INPUT_SHAPE = model_config['input_shape']
+    OUTPUT_STRIDE = model_config['output_stride']
+    FILTERS = model_config['filters']
+    ACTIVATION = model_config['activation']
+    DROPOUT_RATE = model_config['dropout_rate']
+
+    # Training Configuration
+    BATCH_SIZE = train_config['batch_size']
+    EPOCHS = train_config['epochs']
+    FINAL_EPOCHS = train_config['final_epochs']
+    AUGMENT = train_config['augment']
+    MIXED_PRECISION = train_config['mixed_precision']
+    LOSS = train_config['loss']
+
+    optimizer_config = train_config['optimizer']
+    OPTIMIZER_NAME = optimizer_config['name']
+    WEIGHT_DECAY = optimizer_config['weight_decay']
+    MOMENTUM = optimizer_config['momentum']
+    START_LR = optimizer_config['schedule']['start_lr']
+    END_LR = optimizer_config['schedule']['end_lr']
+    LR_DECAY_EPOCHS = optimizer_config['schedule']['decay_epochs']
+    POWER = optimizer_config['schedule']['power']
+
+    DISTRIBUTE_STRATEGY = train_config['distribute']['strategy']
+    DEVICES = train_config['distribute']['devices']
+
 
 if DATASET == 'Cityscapes':
     NUM_CLASSES = 20
-    ignore_class = 19
+    IGNORE_CLASS = 19
     INPUT_SHAPE = (1024, 2048, 3)
 elif DATASET == 'Mapillary':
     INPUT_SHAPE = (1024, 1856, 3)
-    if mapillary_version == 'v1.2':
+    if VERSION == 'v1.2':
         NUM_CLASSES = 64
-        ignore_class = 63
-    elif mapillary_version == 'v2.0':
+        IGNORE_CLASS = 63
+    elif VERSION == 'v2.0':
         NUM_CLASSES = 118
-        ignore_class = 117
+        IGNORE_CLASS = 117
     else:
         raise ValueError('Version of the Mapillary Vistas dataset should be either v1.2 or v2.0!')
 else:
     raise ValueError(F'{DATASET} dataset is invalid. Available Datasets are: Cityscapes, Mapillary!')
 
-# Number of dataset elements
-COUNT = -1
-
-# define other constants
-FILTERS = [16,32,64,128,256]
-
-initial_lr = 0.001
-end_lr = 0.0001
-
+# Define preprocessing according to the Backbone
 if BACKBONE == 'None':
     PREPROCESSING = 'default'
     BACKBONE = None
@@ -97,34 +144,31 @@ elif 'RegNet' in BACKBONE:
 else:
     raise ValueError(f'Enter a valid Backbone name, {BACKBONE} is invalid.')
 
-# ignore_ids = [0,1,2,3,4,5,6,9,10,14,15,16,18,29,30]
-# if NUM_CLASSES==34:
-#     ignore_class = ignore_ids
-# else:
-#     ignore_class = 19
+if MIXED_PRECISION:
+    tf.keras.mixed_precision.set_global_policy('mixed_float16')
 
 # ---------------------------Create Dataset stream--------------------------------
 if DATASET == 'Cityscapes':
     train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
 
     val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, COUNT, augment=False)
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
     
 elif DATASET == 'Mapillary':
     train_ds = MapillaryDataset(height=1024, width=1856,
                                 split='training',
                                 preprocessing=PREPROCESSING,
-                                version='v1.2',
+                                version=VERSION,
                                 shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+    train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
 
     val_ds = MapillaryDataset(height=1024, width=1856,
-                                split='validation',
-                                preprocessing=PREPROCESSING,
-                                version='v1.2',
-                                shuffle=True)
-    val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+                              split='validation',
+                              preprocessing=PREPROCESSING,
+                              version=VERSION,
+                              shuffle=True)
+    val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
 
 
 steps_per_epoch = train_ds.cardinality().numpy()
@@ -159,27 +203,27 @@ loss_func = eval(LOSS)
 loss = loss_func()
 
 lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
-    initial_learning_rate=initial_lr,
-    decay_steps=15*992,
-    end_learning_rate=end_lr,
-    power=2,
+    initial_learning_rate=START_LR,
+    decay_steps=LR_DECAY_EPOCHS*992,
+    end_learning_rate=END_LR,
+    power=POWER,
     cycle=False,
     name=None
     )
 
 optimizer_dict = {
     'Adam' : Adam(lr_schedule),
-    'Nadam' : Nadam(lr_schedule),
+    #'Nadam' : Nadam(lr_schedule),
     'Adadelta' : Adadelta(lr_schedule),
-    'AdamW' : AdamW(learning_rate=lr_schedule),
+    'AdamW' : AdamW(learning_rate=lr_schedule, weight_decay=WEIGHT_DECAY),
     'AdaBelief' : AdaBelief(learning_rate=lr_schedule),
-    'SGDW' : SGDW(learning_rate=lr_schedule, momentum=0.9)
+    'SGDW' : SGDW(learning_rate=lr_schedule, weight_decay=WEIGHT_DECAY, momentum=MOMENTUM)
 }
 
-optimizer = optimizer_dict[OPTIMIZER_STR]
+optimizer = optimizer_dict[OPTIMIZER_NAME]
 
 mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
-mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=ignore_class)
+mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=IGNORE_CLASS)
 metrics = [mean_iou_ignore]
 
 # Instantiate Model
@@ -211,25 +255,25 @@ if BACKBONE is not None:
     #* prevent OOM. Re-define the dataset streams with new batch size
     if DATASET == 'Cityscapes':
         train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
+        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
 
         val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, COUNT, augment=False)
+        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
         
     elif DATASET == 'Mapillary':
         train_ds = MapillaryDataset(height=1024, width=1856,
                                     split='training',
                                     preprocessing=PREPROCESSING,
-                                    version='v1.2',
+                                    version=VERSION,
                                     shuffle=True)
-        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
 
         val_ds = MapillaryDataset(height=1024, width=1856,
-                                    split='validation',
-                                    preprocessing=PREPROCESSING,
-                                    version='v1.2',
-                                    shuffle=True)
-        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, COUNT, augment=False)
+                                  split='validation',
+                                  preprocessing=PREPROCESSING,
+                                  version=VERSION,
+                                  shuffle=True)
+        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
@@ -256,21 +300,20 @@ if BACKBONE is not None:
     
     # load the saved weights into the model to fine tune the high level features of the feature extractor
     # Fine tune the encoder network with a lower learning rate
-    model.load_weights(checkpoint_filepath)
+    #model.load_weights(checkpoint_filepath)
     
     model.summary()
     
-    wd = 2e-5
     optimizer_dict = {
-    'Adam' : Adam(end_lr),
-    'Nadam' : Nadam(end_lr),
-    'Adadelta' : Adadelta(end_lr),
-    'AdamW' : AdamW(learning_rate=end_lr, weight_decay=wd),
-    'AdaBelief' : AdaBelief(learning_rate=end_lr, weight_decay=wd),
-    'SGDW' : SGDW(learning_rate=end_lr, weight_decay=wd, momentum=0.9)
+    'Adam' : Adam(END_LR),
+    #'Nadam' : Nadam(END_LR),
+    'Adadelta' : Adadelta(END_LR),
+    'AdamW' : AdamW(learning_rate=END_LR, weight_decay=WEIGHT_DECAY),
+    'AdaBelief' : AdaBelief(learning_rate=END_LR, weight_decay=WEIGHT_DECAY),
+    'SGDW' : SGDW(learning_rate=END_LR, weight_decay=WEIGHT_DECAY, momentum=MOMENTUM)
     }
 
-    optimizer = optimizer_dict[OPTIMIZER_STR]
+    optimizer = optimizer_dict[OPTIMIZER_NAME]
     
     model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
     

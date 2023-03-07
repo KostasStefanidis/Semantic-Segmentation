@@ -1,0 +1,48 @@
+model:
+  name: EfficientNetV2M-Adam
+  architecture: DeepLabV3plus # Unet
+  backbone: EfficientNetV2M
+  unfreeze_at: block6a_expand_activation # block4a_expand_activation
+  input_shape: [1024, 2048, 3] # do not change
+  output_stride: 32
+  filters: [16,32,64,128,256]
+  activation: relu # swish, leaky_relu
+  dropout_rate: 0
+
+dataset:
+  name: Cityscapes
+  path: /root/dataset/Cityscapes/
+  version: fine
+  num_train_images: -1 # number of training images to use, -1: all
+  num_eval_images: -1
+
+train_config:
+  batch_size: 3
+  loss: FocalHybridLoss
+  epochs: 15
+  final_epochs: 40
+  augment: false
+  mixed_precision: false
+  optimizer:
+    name: Adam
+    weight_decay: 0.00002
+    momentum: 0.9
+    schedule:
+      name: PolynomialDecay
+      start_lr: 0.001
+      end_lr: 0.0001
+      decay_epochs: 10
+      power: 2
+  distribute:
+    strategy: MirroredStrategy #ParameterServerStrategy # NOT IMPEMENTED
+    devices: ["GPU:0", "GPU:1"] # NOT IMPEMENTED
+
+eval_config:
+  eval_scales: [0.5, 1, 2] # NOT IMPEMENTED
+  output_stride: 16 # NOT IMPEMENTED
+
+inference_config:
+  precision: float32
+  output_stride: 16 # NOT IMPEMENTED
+
+logs_dir: ~/logs/ # NOT IMPEMENTED
