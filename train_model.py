@@ -84,6 +84,8 @@ else:
     DROPOUT_RATE = model_config['dropout_rate']
 
     # Training Configuration
+    PRETRAINED_MAPILLARY = train_config['pretrained_mapillary']
+    
     BATCH_SIZE = train_config['batch_size']
     EPOCHS = train_config['epochs']
     FINAL_EPOCHS = train_config['final_epochs']
@@ -237,8 +239,12 @@ model = model_function(input_shape=INPUT_SHAPE,
                        backbone_name=BACKBONE,
                        freeze_backbone=True
                        )
-
 model.summary()
+
+if PRETRAINED_MAPILLARY:
+    # TODO: Implement
+    # load pretrained model without segmentation head and add a new head with 20 output feature maps for Cityscapes
+    pass
 
 model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
@@ -300,7 +306,7 @@ if BACKBONE is not None:
     
     # load the saved weights into the model to fine tune the high level features of the feature extractor
     # Fine tune the encoder network with a lower learning rate
-    #model.load_weights(checkpoint_filepath)
+    model.load_weights(checkpoint_filepath)
     
     model.summary()
     

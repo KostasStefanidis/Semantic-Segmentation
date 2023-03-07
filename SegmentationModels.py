@@ -25,8 +25,10 @@ from keras.applications.efficientnet import EfficientNetB3, EfficientNetB4, Effi
 from keras.applications.efficientnet import EfficientNetB6, EfficientNetB7
 from efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2
 from efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
+import random
 
-KERNEL_INITIALIZER = HeNormal(42)
+kernel_seed = random.randint(0, 1000)
+KERNEL_INITIALIZER = HeNormal(kernel_seed)
 
 
 def get_backbone(backbone_name: str, input_tensor: Tensor, freeze_backbone: bool, unfreeze_at: str, output_stride: int = None, depth: int = None) -> Model:    
@@ -321,12 +323,12 @@ def DeepLabV3plus(input_shape: tuple,
         - [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611)
     """
     
-    assert output_stride in [8,16,32,None]
+    assert output_stride in [8, 16, 32, None]
     
     dilation_rates = {
-        32 : [3, 6, 9],
-        16 : [6,12,18],
-        8 : [12,24,36],
+        32 : [3,   6,  9],
+        16 : [6,  12, 18],
+        8  : [12, 24, 36],
     }
     
     if output_stride is None:

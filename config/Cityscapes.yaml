@@ -17,6 +17,7 @@ dataset:
   num_eval_images: -1
 
 train_config:
+  pretrained_mapillary: false
   batch_size: 3
   loss: FocalHybridLoss
   epochs: 15
