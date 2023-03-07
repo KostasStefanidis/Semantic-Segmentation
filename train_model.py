@@ -255,10 +255,10 @@ if BACKBONE is not None:
     #* prevent OOM. Re-define the dataset streams with new batch size
     if DATASET == 'Cityscapes':
         train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
+        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=False)
 
         val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
+        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_EVAL_IMAGES, augment=False)
         
     elif DATASET == 'Mapillary':
         train_ds = MapillaryDataset(height=1024, width=1856,
@@ -266,14 +266,14 @@ if BACKBONE is not None:
                                     preprocessing=PREPROCESSING,
                                     version=VERSION,
                                     shuffle=True)
-        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
+        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=False)
 
         val_ds = MapillaryDataset(height=1024, width=1856,
                                   split='validation',
                                   preprocessing=PREPROCESSING,
                                   version=VERSION,
                                   shuffle=True)
-        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
+        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_EVAL_IMAGES, augment=False)
     
     # Re-define checkpoint callback to save only the best model
     checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
