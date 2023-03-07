@@ -103,7 +103,7 @@ if DATASET == 'Cityscapes':
     val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
     val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, -1, augment=False)
 else:
-    raise ValueError(f'Inference is not support for {DATASET} Dataset')
+    raise ValueError(f'Inference is not supported for {DATASET} Dataset')
 
 
 MODEL_NAME = f'{MODEL_TYPE}/{MODEL_NAME}'
