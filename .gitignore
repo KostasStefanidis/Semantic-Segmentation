@@ -168,3 +168,5 @@ Confusion_matrix
 archives
 
 test-notebook.ipynb
+pretrained_models
+cache

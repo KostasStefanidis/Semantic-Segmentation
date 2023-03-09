@@ -163,8 +163,10 @@ class MapillaryDataset():
 
 
     def configure_dataset(self, dataset: tf.data.Dataset, batch_size: int, count: int =-1):
-        dataset = dataset.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.take(count)
+        dataset = dataset.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
+        #dataset = dataset.cache('cache/Cityscapes.cache')
+        #dataset = dataset.shuffle(100, reshuffle_each_iteration=True)
         dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
         return dataset
 
