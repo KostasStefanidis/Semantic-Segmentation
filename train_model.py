@@ -84,7 +84,7 @@ else:
     DROPOUT_RATE = model_config['dropout_rate']
 
     # Training Configuration
-    PRETRAINED_MAPILLARY = train_config['pretrained_mapillary']
+    PRETRAINED_WEIGHTS = model_config['pretrained_weights']
     
     BATCH_SIZE = train_config['batch_size']
     EPOCHS = train_config['epochs']
@@ -237,14 +237,10 @@ model = model_function(input_shape=INPUT_SHAPE,
                        activation=ACTIVATION,
                        dropout_rate=DROPOUT_RATE,
                        backbone_name=BACKBONE,
-                       freeze_backbone=True
+                       freeze_backbone=True,
+                       weights=PRETRAINED_WEIGHTS
                        )
 model.summary()
-
-if PRETRAINED_MAPILLARY:
-    # TODO: Implement
-    # load pretrained model without segmentation head and add a new head with 20 output feature maps for Cityscapes
-    pass
 
 model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
@@ -254,6 +250,11 @@ history = model.fit(train_ds,
                     callbacks = callbacks,
                     verbose = 1
                     )
+
+if DATASET == 'Mapillary':
+    model.save_weights('pretrained_models/Mapillary/model')
+    trunk = model.get_layer('Trunk')
+    trunk.save_weights('pretrained_models/Mapillary/trunk')
 
 # FINE TUNE MODEL
 if BACKBONE is not None:
@@ -301,7 +302,7 @@ if BACKBONE is not None:
                            dropout_rate=DROPOUT_RATE,
                            backbone_name=BACKBONE,
                            freeze_backbone=False,
-                           unfreeze_at=UNFREEZE_AT
+                           unfreeze_at=UNFREEZE_AT,
                            )
     
     # load the saved weights into the model to fine tune the high level features of the feature extractor

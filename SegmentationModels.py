@@ -239,22 +239,30 @@ def upsample_and_concat(input_tensor: Tensor,
 
 
 def ASPP(input_tensor: Tensor, filters: int, activation: str, dilation_rates, dropout_type, dropout_rate):
-    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
+    x1 = Conv2D(filters, kernel_size=1, dilation_rate=1, padding='same', 
+                kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+                name='ASPP_Conv1')(input_tensor)
     x1 = BatchNormalization()(x1)
     x1 = Activation(activation)(x1)
     x1 = dropout_layer(x1, dropout_type, dropout_rate)
     
-    x2 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[0], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
+    x2 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[0], padding='same', 
+                kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+                name='ASPP_Conv2')(input_tensor)
     x2 = BatchNormalization()(x2)
     x2 = Activation(activation)(x2)
     x2 = dropout_layer(x2, dropout_type, dropout_rate)
     
-    x3 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[1], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
+    x3 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[1], padding='same', 
+                kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+                name='ASPP_Conv3')(input_tensor)
     x3 = BatchNormalization()(x3)
     x3 = Activation(activation)(x3)
     x3 = dropout_layer(x3, dropout_type, dropout_rate)
     
-    x4 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[2], padding='same', kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
+    x4 = Conv2D(filters, kernel_size=3, dilation_rate=dilation_rates[2], padding='same', 
+                kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+                name='ASPP_Conv4')(input_tensor)
     x4 = BatchNormalization()(x4)
     x4 = Activation(activation)(x4)
     x4 = dropout_layer(x4, dropout_type, dropout_rate)
@@ -266,20 +274,22 @@ def ASPP(input_tensor: Tensor, filters: int, activation: str, dilation_rates, dr
 #     image_feature = Activation('relu')(image_feature)
 #     image_feature = Lambda(lambda x: tf.image.resize(x, input_shape))(image_feature)
 
-    
     x = Concatenate()([x1,x2,x3,x4])
     
     # 1x1 mapping of the spatial_pyramid features
-    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
+    x = Conv2D(256, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+               name='ASPP_Conv_after_Concat')(x)
     x = BatchNormalization()(x)
     x = Activation(activation)(x)
     x = dropout_layer(x, dropout_type, dropout_rate)
     return x
 
 
-def segmentation_head(input_tensor:Tensor, num_classes:int, output_activation='softmax'):
-    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=KERNEL_INITIALIZER)(input_tensor)
-    return Activation(output_activation, name='output_activation', dtype='float32')(output)
+def segmentation_head(input_shape:Tensor, num_classes:int, output_activation='softmax'):
+    input_tensor = tf.keras.Input(shape=input_shape)
+    output = Conv2D(num_classes, kernel_size=1, kernel_initializer=KERNEL_INITIALIZER, name='Output_Conv')(input_tensor)
+    output = Activation(output_activation, name='Output_Activation', dtype='float32')(output)
+    return Model(inputs=input_tensor, outputs=output, name='Segmentation-Head')
 
 
 def DeepLabV3plus(input_shape: tuple,
@@ -292,6 +302,7 @@ def DeepLabV3plus(input_shape: tuple,
                   backbone_name = None,
                   freeze_backbone = True,
                   unfreeze_at = None,
+                  weights: str = None
                   ):
     
     """
@@ -338,7 +349,6 @@ def DeepLabV3plus(input_shape: tuple,
     aspp_dilation_rates = dilation_rates[output_stride]
     
     
-    
     input_tensor = tf.keras.Input(shape=input_shape)
     
     backbone = get_backbone(backbone_name=backbone_name,
@@ -348,8 +358,8 @@ def DeepLabV3plus(input_shape: tuple,
                             unfreeze_at=unfreeze_at)
     Skip = backbone(input_tensor, training=False)
 
-    # Bottleneck
     x = Skip[-1]
+    low_level_features = Skip[1]
     
     # Atrous Spatial Pyramid Pooling
     x = ASPP(input_tensor=x, 
@@ -359,7 +369,8 @@ def DeepLabV3plus(input_shape: tuple,
              dropout_type=dropout_type, 
              dropout_rate=dropout_rate)
     
-    low_level_features = Conv2D(48, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER)(Skip[1])
+    low_level_features = Conv2D(48, kernel_size=1, padding='same', kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+                                name='Conv_low_level_features')(low_level_features)
     # low_level_features = BatchNormalization()(low_level_features)
     # low_level_features = Activation(activation)(low_level_features)
     
@@ -367,21 +378,30 @@ def DeepLabV3plus(input_shape: tuple,
     x = UpSampling2D(size=first_upsampling_factor, interpolation='bilinear')(x)
     x = Concatenate(axis=-1)([x, low_level_features])
     
-    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
+    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+               name='Final_Conv1')(x)
     x = BatchNormalization()(x)
     x = Activation(activation)(x)
-    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=KERNEL_INITIALIZER)(x)
+    x = Conv2D(256, kernel_size=3, padding='same', kernel_initializer=KERNEL_INITIALIZER, use_bias=False,
+               name='Final_Conv2')(x)
     x = BatchNormalization()(x)
     x = Activation(activation)(x)
     x = dropout_layer(x, dropout_type, dropout_rate)
     
     x = UpSampling2D(size=4, interpolation='bilinear')(x)
+    
+    Trunk = Model(inputs=input_tensor, outputs=x, name='Trunk')
+    if weights is not None:
+        Trunk.load_weights(weights)
+    
+    Segmentation_head = segmentation_head(Trunk.output_shape[1:], num_classes=num_classes)
 
-    output = segmentation_head(x, num_classes=num_classes)
+    trunk_output = Trunk(input_tensor)
+    final_output = Segmentation_head(trunk_output)
     
-    model = Model(inputs=input_tensor, outputs=output, name=f'DeepLabV3plus')
+    model = Model(inputs=input_tensor, outputs=final_output, name=f'DeepLabV3plus-{backbone_name}')
     
-    input_spatial_resolution = model.input_shape[1:3]
+    input_spatial_resolution = model.output_shape[1:3]
     output_spatial_resolution = model.output_shape[1:3]
     assert input_spatial_resolution == output_spatial_resolution, f'Model output spatial resolution must be equal to input spatial resolution.'
     
@@ -472,7 +492,7 @@ def base_Unet(unet_type: str,
     
     return model
 
-              
+
 def Unet(input_shape: tuple,
          filters: tuple, 
          num_classes: int,
