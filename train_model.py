@@ -71,6 +71,9 @@ else:
     VERSION = dataset_config['version']
     NUM_TRAIN_IMAGES = dataset_config['num_train_images']
     NUM_EVAL_IMAGES = dataset_config['num_eval_images']
+    CACHE = dataset_config['cache']
+    CACHE_FILE = dataset_config['cache_file']
+    SEED = dataset_config['seed']
 
     # Model Configuration
     MODEL_TYPE = model_config['architecture']
@@ -151,26 +154,39 @@ if MIXED_PRECISION:
 
 # ---------------------------Create Dataset stream--------------------------------
 if DATASET == 'Cityscapes':
-    train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
+    train_ds = CityscapesDataset(num_classes=NUM_CLASSES, 
+                                 split='train', 
+                                 preprocessing=PREPROCESSING, 
+                                 shuffle=True, 
+                                 cache=CACHE,
+                                 cache_file=CACHE_FILE
+                                 )
+    train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False, seed=SEED)
 
-    val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
+    val_ds = CityscapesDataset(num_classes=NUM_CLASSES, 
+                               split='val', 
+                               preprocessing=PREPROCESSING, 
+                               shuffle=False,
+                               cache=CACHE,
+                               cache_file=CACHE_FILE
+                               )
+    val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE, NUM_EVAL_IMAGES, seed=SEED)
     
 elif DATASET == 'Mapillary':
     train_ds = MapillaryDataset(height=1024, width=1856,
                                 split='training',
                                 preprocessing=PREPROCESSING,
                                 version=VERSION,
-                                shuffle=True)
-    train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False)
+                                shuffle=True,
+                                )
+    train_ds = train_ds.create(DATA_PATH, BATCH_SIZE, NUM_TRAIN_IMAGES, augment=False, seed=SEED)
 
     val_ds = MapillaryDataset(height=1024, width=1856,
                               split='validation',
                               preprocessing=PREPROCESSING,
                               version=VERSION,
-                              shuffle=True)
-    val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, NUM_EVAL_IMAGES, augment=False)
+                              shuffle=False)
+    val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, NUM_EVAL_IMAGES, seed=SEED)
 
 
 steps_per_epoch = train_ds.cardinality().numpy()
@@ -191,9 +207,9 @@ model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,
                                             save_freq=save_freq, 
                                             save_best_only=save_best_only,
                                             verbose=0)
-
-log_dir = f'Tensorboard_logs/{DATASET}/{MODEL_TYPE}/{MODEL_NAME}'
-tensorboard_callback = TensorBoard(log_dir=log_dir,
+#{LOGS_DIR}/
+tensorboard_log_dir = f'Tensorboard_logs/{DATASET}/{MODEL_TYPE}/{MODEL_NAME}'
+tensorboard_callback = TensorBoard(log_dir=tensorboard_log_dir,
                                    histogram_freq=0,
                                    write_graph=False,
                                    write_steps_per_second=False)
@@ -215,7 +231,6 @@ lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
 
 optimizer_dict = {
     'Adam' : Adam(lr_schedule),
-    #'Nadam' : Nadam(lr_schedule),
     'Adadelta' : Adadelta(lr_schedule),
     'AdamW' : AdamW(learning_rate=lr_schedule, weight_decay=WEIGHT_DECAY),
     'AdaBelief' : AdaBelief(learning_rate=lr_schedule),
@@ -251,39 +266,46 @@ history = model.fit(train_ds,
                     verbose = 1
                     )
 
-if DATASET == 'Mapillary':
-    model.save_weights('pretrained_models/Mapillary/model')
-    trunk = model.get_layer('Trunk')
-    trunk.save_weights('pretrained_models/Mapillary/trunk')
-
 # FINE TUNE MODEL
 if BACKBONE is not None:
     #* After unfreezing the final backbone weights the barch size might need to be reduced to
     #* prevent OOM. Re-define the dataset streams with new batch size
     if DATASET == 'Cityscapes':
-        train_ds = CityscapesDataset(NUM_CLASSES, 'train', PREPROCESSING, shuffle=True)
-        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=False)
+        train_ds = CityscapesDataset(num_classes=NUM_CLASSES, 
+                                    split='train', 
+                                    preprocessing=PREPROCESSING, 
+                                    shuffle=True, 
+                                    cache=CACHE,
+                                    cache_file=CACHE_FILE
+                                    )
+        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=AUGMENT, seed=SEED)
 
-        val_ds = CityscapesDataset(NUM_CLASSES, 'val', PREPROCESSING, shuffle=False)
-        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_EVAL_IMAGES, augment=False)
+        val_ds = CityscapesDataset(num_classes=NUM_CLASSES, 
+                                split='val', 
+                                preprocessing=PREPROCESSING, 
+                                shuffle=False,
+                                cache=CACHE,
+                                cache_file=CACHE_FILE
+                                )
+        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_EVAL_IMAGES, seed=SEED)
         
     elif DATASET == 'Mapillary':
         train_ds = MapillaryDataset(height=1024, width=1856,
                                     split='training',
                                     preprocessing=PREPROCESSING,
                                     version=VERSION,
-                                    shuffle=True)
-        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=False)
+                                    shuffle=True,
+                                    )
+        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=AUGMENT, seed=SEED)
 
         val_ds = MapillaryDataset(height=1024, width=1856,
-                                  split='validation',
-                                  preprocessing=PREPROCESSING,
-                                  version=VERSION,
-                                  shuffle=True)
-        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_EVAL_IMAGES, augment=False)
+                                split='validation',
+                                preprocessing=PREPROCESSING,
+                                version=VERSION,
+                                shuffle=False)
+        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_EVAL_IMAGES, seed=SEED)
     
     # Re-define checkpoint callback to save only the best model
-    checkpoint_filepath = f'saved_models/{MODEL_TYPE}/{MODEL_NAME}'
     model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                                 save_weights_only=False,
                                                 monitor='val_MeanIoU_ignore',
@@ -313,7 +335,6 @@ if BACKBONE is not None:
     
     optimizer_dict = {
     'Adam' : Adam(END_LR),
-    #'Nadam' : Nadam(END_LR),
     'Adadelta' : Adadelta(END_LR),
     'AdamW' : AdamW(learning_rate=END_LR, weight_decay=WEIGHT_DECAY),
     'AdaBelief' : AdaBelief(learning_rate=END_LR, weight_decay=WEIGHT_DECAY),
@@ -331,3 +352,9 @@ if BACKBONE is not None:
                         callbacks = callbacks,
                         verbose = 1
                         )
+    
+    # TODO: write callback to save model trunk to avoid the following 
+    if DATASET == 'Mapillary':
+        model.save_weights(f'pretrained_models/{MODEL_TYPE}/{MODEL_NAME}/model')
+        trunk = model.get_layer('Trunk')
+        trunk.save_weights(f'pretrained_models/{MODEL_TYPE}/{MODEL_NAME}/trunk')

@@ -1,26 +1,30 @@
 model:
-  name: EfficientNetV2M-Adam
+  name: Pretrained-30epochs
   architecture: DeepLabV3plus # Unet
   backbone: EfficientNetV2M
   unfreeze_at: block6a_expand_activation # block4a_expand_activation
   input_shape: [1024, 1856, 3] # do not change
   output_stride: 32
   filters: [16,32,64,128,256]
-  activation: relu # swish, leaky_relu
+  activation: leaky_relu # swish, leaky_relu
   dropout_rate: 0
+  pretrained_weights: 
 
 dataset:
   name: Mapillary
   path: /root/dataset/Mapillary/
   version: v1.2
-  num_train_images: -1 # number of training images to use, -1: all
+  num_train_images: -1
   num_eval_images: -1
+  cache: false # do not cache mapillary -> huge file size (multiple terrabytes)
+  cache_file: /root/dataset/Mapillary/data_cache
+  seed: 80
 
 train_config:
   batch_size: 3
   loss: FocalHybridLoss
-  epochs: 20
-  final_epochs: 50
+  epochs: 15
+  final_epochs: 30
   augment: false
   mixed_precision: false
   optimizer:
@@ -31,7 +35,7 @@ train_config:
       name: PolynomialDecay
       start_lr: 0.002
       end_lr: 0.0002
-      decay_epochs: 15
+      decay_epochs: 10
       power: 1
   distribute:
     strategy: MirroredStrategy #ParameterServerStrategy # NOT IMPEMENTED
@@ -45,4 +49,4 @@ inference_config:
   precision: float32
   output_stride: 16 # NOT IMPEMENTED
 
-logs_dir: ~/logs/ # NOT IMPEMENTED
+logs_dir:  # NOT IMPEMENTED

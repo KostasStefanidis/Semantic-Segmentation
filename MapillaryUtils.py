@@ -64,34 +64,25 @@ class MapillaryDataset():
         image_path = data_path + self.split + '/' + self.img_path + '/' + self.img_suffix
         label_path = data_path + self.split + '/' + self.label_path + '/' + self.label_suffix
         return image_path, label_path
-    
-  
-    def decode_dataset(self, path_ds):
-        ds = path_ds.map(tf.io.read_file)
-        ds = ds.map(tf.image.decode_image)
+
+
+    def decode_dataset(self, path_ds: tf.data.Dataset):
+        ds = path_ds.map(tf.io.read_file, num_parallel_calls=tf.data.AUTOTUNE)
+        ds = ds.map(tf.image.decode_image, num_parallel_calls=tf.data.AUTOTUNE)
         return ds
 
 
-    def dataset_from_path(self, data_path: str, seed: int):
+    def dataset_from_path(self, data_path: str):
         img_path, label_path = self.construct_path(data_path)
         
-        # either shuffle=None and the shuffling is done by passing a seed to the random generator
-        # or shuffle=False and seed=None and we get the files in deterministic order
-        if self.shuffle == True:
-            seed = seed
-            shuffle = None
-        else:
-            seed = None
-            shuffle = False
-        
         # Create a dataset of strings corresponding to file names matching img_path    
-        img_path_ds = tf.data.Dataset.list_files(img_path, seed=seed, shuffle=shuffle)
+        img_path_ds = tf.data.Dataset.list_files(img_path, shuffle=False)
         img = self.decode_dataset(img_path_ds)
         
         if self.split == 'testing':
             dataset = img
         else:
-            label_path_ds = tf.data.Dataset.list_files(label_path, seed=seed, shuffle=shuffle)
+            label_path_ds = tf.data.Dataset.list_files(label_path, shuffle=False)
             label = self.decode_dataset(label_path_ds)
             dataset = tf.data.Dataset.zip((img, label))
         return dataset
@@ -144,12 +135,12 @@ class MapillaryDataset():
 
     def preprocess_dataset(self, dataset: tf.data.Dataset, augment: bool, seed: int):
         if self.split == 'testing':
-            dataset = dataset.map(self.set_shape_image)
+            dataset = dataset.map(self.set_shape_image, num_parallel_calls=tf.data.AUTOTUNE)
             # in testing split there are only images and no ground truth
             dataset = dataset.map(lambda image: (self.preprocess_image(image)),
                     num_parallel_calls=tf.data.AUTOTUNE)
         else:
-            dataset = dataset.map(self.set_shape_dataset)
+            dataset = dataset.map(self.set_shape_dataset, num_parallel_calls=tf.data.AUTOTUNE)
             # augmentation is done only for training set
             if augment:
                 dataset = dataset.map(Augment(seed))
@@ -165,8 +156,8 @@ class MapillaryDataset():
     def configure_dataset(self, dataset: tf.data.Dataset, batch_size: int, count: int =-1):
         dataset = dataset.take(count)
         dataset = dataset.batch(batch_size, num_parallel_calls=tf.data.AUTOTUNE)
-        #dataset = dataset.cache('cache/Cityscapes.cache')
-        #dataset = dataset.shuffle(100, reshuffle_each_iteration=True)
+        # if self.shuffle:
+        #     dataset = dataset.shuffle(30, reshuffle_each_iteration=True)
         dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
         return dataset
 
@@ -183,7 +174,6 @@ class MapillaryDataset():
         Args:
             - `data_path` (str): The relative or absolute path of the directory containing the dataset folders. 
                 Both `leftImg8bit_trainvaltest` and `gtFine_trainvaltest` directories must be in the `data_path` parent directory.
-            - `subfolder` (str, optional): The subfolder to read images from. Defaults to 'all'.
             - `batch_size` (int, optional): The size of each batch of images. Essentially how many images will 
             be processed and will propagate through the network at the same time. Defaults to 1.
             - `count` (int, optional) : The number of elements i.e. (image, ground_truth) pairs that should be taken from the whole dataset. If count is -1,
@@ -196,7 +186,7 @@ class MapillaryDataset():
             tf.data.Dataset
         """
 
-        dataset = self.dataset_from_path(data_path, seed)
+        dataset = self.dataset_from_path(data_path)
         dataset = self.preprocess_dataset(dataset, augment, seed)
         dataset = self.configure_dataset(dataset, batch_size, count)
         return dataset

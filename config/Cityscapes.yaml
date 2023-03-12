@@ -1,32 +1,35 @@
 model:
-  name: EfficientNetV2M-Adam
+  name: EfficientNetV2M-shuffle
   architecture: DeepLabV3plus # Unet
   backbone: EfficientNetV2M
   unfreeze_at: block6a_expand_activation # block4a_expand_activation
   input_shape: [1024, 2048, 3] # do not change
   output_stride: 32
   filters: [16,32,64,128,256]
-  activation: relu # swish, leaky_relu
+  activation: leaky_relu # swish, leaky_relu
   dropout_rate: 0
+  pretrained_weights: #/root/Semantic-Segmentation-Cityscapes/pretrained_models/Mapillary/trunk
 
 dataset:
   name: Cityscapes
   path: /root/dataset/Cityscapes/
   version: fine
-  num_train_images: -1 # number of training images to use, -1: all
+  num_train_images: -1
   num_eval_images: -1
+  cache: false
+  cache_file: /root/dataset/Cityscapes/data_cache
+  seed: 80
 
 train_config:
-  pretrained_mapillary: false
   batch_size: 3
   loss: FocalHybridLoss
   epochs: 15
-  final_epochs: 40
+  final_epochs: 60
   augment: false
-  mixed_precision: false
+  mixed_precision: false # re-validate
   optimizer:
     name: Adam
-    weight_decay: 0.00002
+    weight_decay: 0.00005
     momentum: 0.9
     schedule:
       name: PolynomialDecay
@@ -43,7 +46,7 @@ eval_config:
   output_stride: 16 # NOT IMPEMENTED
 
 inference_config:
-  precision: float32
+  precision: float32 # NOT IMPEMENTED
   output_stride: 16 # NOT IMPEMENTED
 
-logs_dir: ~/logs/ # NOT IMPEMENTED
+logs_dir: # NOT IMPEMENTED
