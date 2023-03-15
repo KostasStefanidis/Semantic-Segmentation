@@ -38,8 +38,10 @@ train_config:
       decay_epochs: 10
       power: 2
   distribute:
-    strategy: MirroredStrategy #ParameterServerStrategy # NOT IMPEMENTED
-    devices: ["GPU:0", "GPU:1"] # NOT IMPEMENTED
+    strategy: MirroredStrategy
+    devices: 
+      - GPU:0
+      - GPU:1
 
 eval_config:
   eval_scales: [0.5, 1, 2] # NOT IMPEMENTED

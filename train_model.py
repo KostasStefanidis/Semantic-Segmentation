@@ -1,9 +1,8 @@
 import os
 import tensorflow as tf
 from keras.callbacks import ModelCheckpoint, TensorBoard
-from keras.optimizers import Adam, SGD, Adadelta, Nadam
+from keras.optimizers import Adam, SGD, Adadelta
 from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
-from keras import mixed_precision
 from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
 from CityscapesUtils import CityscapesDataset
 from MapillaryUtils import MapillaryDataset
@@ -89,7 +88,7 @@ else:
     # Training Configuration
     PRETRAINED_WEIGHTS = model_config['pretrained_weights']
     
-    BATCH_SIZE = train_config['batch_size']
+    BATCH_SIZE_PER_REPLICA = train_config['batch_size']
     EPOCHS = train_config['epochs']
     FINAL_EPOCHS = train_config['final_epochs']
     AUGMENT = train_config['augment']
@@ -151,6 +150,17 @@ else:
 
 if MIXED_PRECISION:
     tf.keras.mixed_precision.set_global_policy('mixed_float16')
+    
+if len(DEVICES) > 1: 
+    # if more than 1 devices are specified in the configuration
+    # -> use Mirrored Strategy with specified devices
+    strategy = tf.distribute.MirroredStrategy(DEVICES)
+else:  
+    # Use the Default Strategy
+    strategy = tf.distribute.get_strategy()
+
+BATCH_SIZE = BATCH_SIZE_PER_REPLICA * strategy.num_replicas_in_sync
+
 
 # ---------------------------Create Dataset stream--------------------------------
 if DATASET == 'Cityscapes':
@@ -188,8 +198,12 @@ elif DATASET == 'Mapillary':
                               shuffle=False)
     val_ds = val_ds.create(DATA_PATH, BATCH_SIZE, NUM_EVAL_IMAGES, seed=SEED)
 
+# Make the data pipeline distribute aware
+train_ds = strategy.experimental_distribute_dataset(train_ds)
+val_ds = strategy.experimental_distribute_dataset(val_ds)
 
-steps_per_epoch = train_ds.cardinality().numpy()
+# TODO: Fix this
+steps_per_epoch = train_ds.cardinality
 
 # ---------------------------------------CALLBACKS-------------------------------------------
 if BACKBONE is None:
@@ -243,21 +257,24 @@ mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
 mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=IGNORE_CLASS)
 metrics = [mean_iou_ignore]
 
-# Instantiate Model
-model_function = eval(MODEL_TYPE)
-model = model_function(input_shape=INPUT_SHAPE,
-                       filters=FILTERS,
-                       num_classes=NUM_CLASSES,
-                       output_stride=OUTPUT_STRIDE,
-                       activation=ACTIVATION,
-                       dropout_rate=DROPOUT_RATE,
-                       backbone_name=BACKBONE,
-                       freeze_backbone=True,
-                       weights=PRETRAINED_WEIGHTS
-                       )
-model.summary()
+with strategy.scope():
+    # Instantiate Model
+    model_function = eval(MODEL_TYPE)
+    model = model_function(input_shape=INPUT_SHAPE,
+                        filters=FILTERS,
+                        num_classes=NUM_CLASSES,
+                        output_stride=OUTPUT_STRIDE,
+                        activation=ACTIVATION,
+                        dropout_rate=DROPOUT_RATE,
+                        backbone_name=BACKBONE,
+                        freeze_backbone=True,
+                        weights=PRETRAINED_WEIGHTS
+                        )
 
-model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+    model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+
+
+model.summary()
 
 history = model.fit(train_ds,
                     validation_data=val_ds,
@@ -305,6 +322,10 @@ if BACKBONE is not None:
                                 shuffle=False)
         val_ds = val_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_EVAL_IMAGES, seed=SEED)
     
+    # Make the data pipeline distribute aware
+    train_ds = strategy.experimental_distribute_dataset(train_ds)
+    val_ds = strategy.experimental_distribute_dataset(val_ds)
+    
     # Re-define checkpoint callback to save only the best model
     model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                                 save_weights_only=False,
@@ -314,24 +335,6 @@ if BACKBONE is not None:
                                                 verbose=0)
     
     callbacks = [model_checkpoint_callback, tensorboard_callback]
-    
-    # instantiate model again with the last part of the encoder (Backbone) un-frozen
-    model = model_function(input_shape=INPUT_SHAPE,
-                           filters=FILTERS,
-                           num_classes=NUM_CLASSES,
-                           output_stride=OUTPUT_STRIDE,
-                           activation=ACTIVATION,
-                           dropout_rate=DROPOUT_RATE,
-                           backbone_name=BACKBONE,
-                           freeze_backbone=False,
-                           unfreeze_at=UNFREEZE_AT,
-                           )
-    
-    # load the saved weights into the model to fine tune the high level features of the feature extractor
-    # Fine tune the encoder network with a lower learning rate
-    model.load_weights(checkpoint_filepath)
-    
-    model.summary()
     
     optimizer_dict = {
     'Adam' : Adam(END_LR),
@@ -343,7 +346,26 @@ if BACKBONE is not None:
 
     optimizer = optimizer_dict[OPTIMIZER_NAME]
     
-    model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+    with strategy.scope():
+        # instantiate model again with the last part of the encoder (Backbone) un-frozen
+        model = model_function(input_shape=INPUT_SHAPE,
+                            filters=FILTERS,
+                            num_classes=NUM_CLASSES,
+                            output_stride=OUTPUT_STRIDE,
+                            activation=ACTIVATION,
+                            dropout_rate=DROPOUT_RATE,
+                            backbone_name=BACKBONE,
+                            freeze_backbone=False,
+                            unfreeze_at=UNFREEZE_AT,
+                            )
+        
+        # load the saved weights into the model to fine tune the high level features of the feature extractor
+        # Fine tune the encoder network with a lower learning rate
+        model.load_weights(checkpoint_filepath)
+        
+        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+    
+    model.summary()
     
     history = model.fit(train_ds,
                         validation_data=val_ds,
