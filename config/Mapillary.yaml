@@ -1,5 +1,5 @@
 model:
-  name: Pretrained-30epochs
+  name: Test-whole-data
   architecture: DeepLabV3plus # Unet
   backbone: EfficientNetV2M
   unfreeze_at: block6a_expand_activation # block4a_expand_activation
@@ -23,8 +23,8 @@ dataset:
 train_config:
   batch_size: 3
   loss: FocalHybridLoss
-  epochs: 15
-  final_epochs: 30
+  epochs: 10
+  final_epochs: 20
   augment: false
   mixed_precision: false
   optimizer:
@@ -33,10 +33,10 @@ train_config:
     momentum: 0.9
     schedule:
       name: PolynomialDecay
-      start_lr: 0.002
-      end_lr: 0.0002
+      start_lr: 0.001
+      end_lr: 0.0001
       decay_epochs: 10
-      power: 1
+      power: 2
   distribute:
     strategy: MirroredStrategy #ParameterServerStrategy # NOT IMPEMENTED
     devices: ["GPU:0", "GPU:1"] # NOT IMPEMENTED

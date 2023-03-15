@@ -24,7 +24,7 @@ train_config:
   batch_size: 3
   loss: FocalHybridLoss
   epochs: 15
-  final_epochs: 60
+  final_epochs: 40
   augment: false
   mixed_precision: false # re-validate
   optimizer:
