@@ -155,7 +155,7 @@ if len(DEVICES) > 1:
     # if more than 1 devices are specified in the configuration
     # -> use Mirrored Strategy with specified devices
     strategy = tf.distribute.MirroredStrategy(DEVICES)
-else:  
+else:
     # Use the Default Strategy
     strategy = tf.distribute.get_strategy()
 
@@ -202,8 +202,9 @@ elif DATASET == 'Mapillary':
 train_ds = strategy.experimental_distribute_dataset(train_ds)
 val_ds = strategy.experimental_distribute_dataset(val_ds)
 
-# TODO: Fix this
-steps_per_epoch = train_ds.cardinality
+steps_per_epoch = tf.data.experimental.cardinality(train_ds).numpy()
+validation_steps = tf.data.experimental.cardinality(val_ds).numpy()
+
 
 # ---------------------------------------CALLBACKS-------------------------------------------
 if BACKBONE is None:
@@ -218,7 +219,7 @@ model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,
                                             save_weights_only=False,
                                             monitor='val_MeanIoU_ignore',
                                             mode='max',
-                                            save_freq=save_freq, 
+                                            save_freq='epoch', 
                                             save_best_only=save_best_only,
                                             verbose=0)
 #{LOGS_DIR}/
@@ -230,9 +231,6 @@ tensorboard_callback = TensorBoard(log_dir=tensorboard_log_dir,
 
 callbacks = [model_checkpoint_callback, tensorboard_callback]
 # -------------------------------------------------------------------------------------------
-
-loss_func = eval(LOSS)
-loss = loss_func()
 
 lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(
     initial_learning_rate=START_LR,
@@ -251,25 +249,28 @@ optimizer_dict = {
     'SGDW' : SGDW(learning_rate=lr_schedule, weight_decay=WEIGHT_DECAY, momentum=MOMENTUM)
 }
 
-optimizer = optimizer_dict[OPTIMIZER_NAME]
-
-mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
-mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=IGNORE_CLASS)
-metrics = [mean_iou_ignore]
-
 with strategy.scope():
+    loss_func = eval(LOSS)
+    loss = loss_func()
+    
+    optimizer = optimizer_dict[OPTIMIZER_NAME]
+
+    mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
+    mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=IGNORE_CLASS)
+    metrics = [mean_iou_ignore]
+    
     # Instantiate Model
     model_function = eval(MODEL_TYPE)
     model = model_function(input_shape=INPUT_SHAPE,
-                        filters=FILTERS,
-                        num_classes=NUM_CLASSES,
-                        output_stride=OUTPUT_STRIDE,
-                        activation=ACTIVATION,
-                        dropout_rate=DROPOUT_RATE,
-                        backbone_name=BACKBONE,
-                        freeze_backbone=True,
-                        weights=PRETRAINED_WEIGHTS
-                        )
+                           filters=FILTERS,
+                           num_classes=NUM_CLASSES,
+                           output_stride=OUTPUT_STRIDE,
+                           activation=ACTIVATION,
+                           dropout_rate=DROPOUT_RATE,
+                           backbone_name=BACKBONE,
+                           freeze_backbone=True,
+                           weights=PRETRAINED_WEIGHTS
+                           )
 
     model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
@@ -279,53 +280,14 @@ model.summary()
 history = model.fit(train_ds,
                     validation_data=val_ds,
                     epochs=EPOCHS,
+                    steps_per_epoch=steps_per_epoch,
+                    validation_steps=validation_steps,
                     callbacks = callbacks,
                     verbose = 1
                     )
 
 # FINE TUNE MODEL
-if BACKBONE is not None:
-    #* After unfreezing the final backbone weights the barch size might need to be reduced to
-    #* prevent OOM. Re-define the dataset streams with new batch size
-    if DATASET == 'Cityscapes':
-        train_ds = CityscapesDataset(num_classes=NUM_CLASSES, 
-                                    split='train', 
-                                    preprocessing=PREPROCESSING, 
-                                    shuffle=True, 
-                                    cache=CACHE,
-                                    cache_file=CACHE_FILE
-                                    )
-        train_ds = train_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=AUGMENT, seed=SEED)
-
-        val_ds = CityscapesDataset(num_classes=NUM_CLASSES, 
-                                split='val', 
-                                preprocessing=PREPROCESSING, 
-                                shuffle=False,
-                                cache=CACHE,
-                                cache_file=CACHE_FILE
-                                )
-        val_ds = val_ds.create(DATA_PATH, 'all', BATCH_SIZE-1, NUM_EVAL_IMAGES, seed=SEED)
-        
-    elif DATASET == 'Mapillary':
-        train_ds = MapillaryDataset(height=1024, width=1856,
-                                    split='training',
-                                    preprocessing=PREPROCESSING,
-                                    version=VERSION,
-                                    shuffle=True,
-                                    )
-        train_ds = train_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_TRAIN_IMAGES, augment=AUGMENT, seed=SEED)
-
-        val_ds = MapillaryDataset(height=1024, width=1856,
-                                split='validation',
-                                preprocessing=PREPROCESSING,
-                                version=VERSION,
-                                shuffle=False)
-        val_ds = val_ds.create(DATA_PATH, BATCH_SIZE-1, NUM_EVAL_IMAGES, seed=SEED)
-    
-    # Make the data pipeline distribute aware
-    train_ds = strategy.experimental_distribute_dataset(train_ds)
-    val_ds = strategy.experimental_distribute_dataset(val_ds)
-    
+if BACKBONE is not None:    
     # Re-define checkpoint callback to save only the best model
     model_checkpoint_callback = ModelCheckpoint(filepath=checkpoint_filepath,                                           
                                                 save_weights_only=False,
@@ -343,21 +305,29 @@ if BACKBONE is not None:
     'AdaBelief' : AdaBelief(learning_rate=END_LR, weight_decay=WEIGHT_DECAY),
     'SGDW' : SGDW(learning_rate=END_LR, weight_decay=WEIGHT_DECAY, momentum=MOMENTUM)
     }
-
-    optimizer = optimizer_dict[OPTIMIZER_NAME]
     
     with strategy.scope():
+        
+        loss_func = eval(LOSS)
+        loss = loss_func()
+        
+        optimizer = optimizer_dict[OPTIMIZER_NAME]
+
+        mean_iou = MeanIoU(NUM_CLASSES, name='MeanIoU', ignore_class=None)
+        mean_iou_ignore = MeanIoU(NUM_CLASSES, name='MeanIoU_ignore', ignore_class=IGNORE_CLASS)
+        metrics = [mean_iou_ignore]
+        
         # instantiate model again with the last part of the encoder (Backbone) un-frozen
         model = model_function(input_shape=INPUT_SHAPE,
-                            filters=FILTERS,
-                            num_classes=NUM_CLASSES,
-                            output_stride=OUTPUT_STRIDE,
-                            activation=ACTIVATION,
-                            dropout_rate=DROPOUT_RATE,
-                            backbone_name=BACKBONE,
-                            freeze_backbone=False,
-                            unfreeze_at=UNFREEZE_AT,
-                            )
+                               filters=FILTERS,
+                               num_classes=NUM_CLASSES,
+                               output_stride=OUTPUT_STRIDE,
+                               activation=ACTIVATION,
+                               dropout_rate=DROPOUT_RATE,
+                               backbone_name=BACKBONE,
+                               freeze_backbone=False,
+                               unfreeze_at=UNFREEZE_AT,
+                               )
         
         # load the saved weights into the model to fine tune the high level features of the feature extractor
         # Fine tune the encoder network with a lower learning rate
@@ -371,12 +341,14 @@ if BACKBONE is not None:
                         validation_data=val_ds,
                         initial_epoch=EPOCHS,
                         epochs=FINAL_EPOCHS,
+                        steps_per_epoch=steps_per_epoch,
+                        validation_steps=validation_steps,
                         callbacks = callbacks,
                         verbose = 1
                         )
     
     # TODO: write callback to save model trunk to avoid the following 
     if DATASET == 'Mapillary':
-        model.save_weights(f'pretrained_models/{MODEL_TYPE}/{MODEL_NAME}/model')
-        trunk = model.get_layer('Trunk')
-        trunk.save_weights(f'pretrained_models/{MODEL_TYPE}/{MODEL_NAME}/trunk')
+        best_model = tf.keras.models.load_model(checkpoint_filepath, compile=False)
+        trunk = best_model.get_layer('Trunk')
+        trunk.save_weights(f'pretrained_Mapillary_models/{MODEL_TYPE}/{MODEL_NAME}/trunk')
