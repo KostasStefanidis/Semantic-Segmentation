@@ -3,7 +3,7 @@ services:
     image: tensorflow:2.10.1-gpu
     build:
       context: ..
-      dockerfile: tensorflow-2.10.1-gpu.Dockerfile
+      dockerfile: tensorflow-2.12.0-gpu.Dockerfile
       args:
         USERNAME: kstef
       tags:
