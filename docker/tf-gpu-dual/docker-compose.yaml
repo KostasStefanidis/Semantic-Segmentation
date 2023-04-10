@@ -6,16 +6,18 @@ services:
       dockerfile: tensorflow-2.10.1-gpu.Dockerfile
       args:
         USERNAME: kstef
+        USER_ID: 1003
+        GROUP_ID: 1003
       tags:
         - "tensorflow:2.10.1-gpu"
-    container_name: tf-dual-gpu
-    user: root
+    container_name: tf-gpu
+    user: kstef
     tty: true
     stdin_open: true
     volumes:
-      - /home/kstef/Semantic-Segmentation-Cityscapes:/root/Semantic-Segmentation-Cityscapes
-      - /home/kstef/.keras:/root/.keras
-      - /home/kstef/dataset:/root/dataset
+      - /home/kstef/Semantic-Segmentation-Cityscapes:/mnt/Semantic-Segmentation-Cityscapes
+      - /home/kstef/.keras:/mnt/.keras
+      - /home/kstef/dataset:/mnt/dataset
     deploy:
       resources:
         reservations:
