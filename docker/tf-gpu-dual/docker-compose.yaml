@@ -11,9 +11,11 @@ services:
       tags:
         - "tensorflow:2.10.1-gpu"
     container_name: tf-gpu
+    hostname: tensorflow-container-gpu
     user: kstef
     tty: true
     stdin_open: true
+    working_dir: /mnt/
     volumes:
       - /home/kstef/Semantic-Segmentation-Cityscapes:/mnt/Semantic-Segmentation-Cityscapes
       - /home/kstef/.keras:/mnt/.keras
