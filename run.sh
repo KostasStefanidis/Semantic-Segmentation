@@ -167,23 +167,23 @@ main_with_config(){
     # train model
     if [ $TRAIN = 'true' ]
     then
-        python3 train_model.py --config $CONFIG
+        python3 train.py --config $CONFIG
     fi
 
     #Evaluate model
     if [ $EVAL = 'true' ]
     then
         mkdir -p -m=776 Evaluation_logs/$MODEL_TYPE
-        python3 evaluate_model.py --config $CONFIG
+        python3 evaluate.py --config $CONFIG
     fi
 
     if [ $PREDICT = 'true' ]
     then
         # make predictions with the validation set and convert them to rgb
-        python3 create_predictions.py --config $CONFIG --split "val"
+        python3 predict.py --config $CONFIG --split "val"
 
         # make predictions with the test set and convert them to rgb
-        python3 create_predictions.py --config $CONFIG --split "test"
+        python3 predict.py --config $CONFIG --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
         zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL
@@ -194,7 +194,7 @@ main_with_args(){
     # train model
     if [ $TRAIN = 'true' ]
     then
-        python3 train_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride $TRAIN_OUTPUT_STRIDE\
+        python3 train.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --output_stride $TRAIN_OUTPUT_STRIDE\
         --loss $LOSS --batch_size $BATCH_SIZE --activation $ACTIVATION --dropout $DROPOUT_RATE --augment $AUGMENT --epochs $EPOCHS --final_epochs $FINAL_EPOCHS\
         --optimizer $OPTIMIZER --unfreeze_at $UNFREEZE_AT --dataset $DATASET
     fi
@@ -204,17 +204,17 @@ main_with_args(){
     then
         mkdir -p -m=776 Evaluation_logs/$MODEL_TYPE
 
-        python3 evaluate_model.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --output_stride $EVAL_OUTPUT_STRIDE\
+        python3 evaluate.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --output_stride $EVAL_OUTPUT_STRIDE\
         --backbone $BACKBONE --loss $LOSS >> Evaluation_logs/$MODEL_TYPE/$MODEL_NAME.txt
     fi
 
     if [ $PREDICT = 'true' ]
     then
         # make predictions with the validation set and convert them to rgb
-        python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"
+        python3 predict.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "val"
 
         # make predictions with the test set and convert them to rgb
-        #python3 create_predictions.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
+        #python3 predict.py --data_path $DATA_PATH --model_type $MODEL_TYPE --model_name $MODEL_NAME --backbone $BACKBONE --split "test"
 
         # zip the generated images and place the compressed file into the archives folder
         #zip -r archives/$MODEL_TYPE-$MODEL_NAME.zip predictions/$MODEL Evaluation_logs/$MODEL.txt saved_models/$MODEL

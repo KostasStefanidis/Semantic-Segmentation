@@ -170,7 +170,7 @@ else:
     metrics = [mean_iou_ignore]
 
 model_dir = 'saved_models'
-model_filepath = f'{model_dir}/{MODEL_TYPE}/{MODEL_NAME}'
+model_filepath = f'{model_dir}/{DATASET}/{MODEL_TYPE}/{MODEL_NAME}'
 
 # model_function = eval(MODEL_TYPE)
 # model = model_function(input_shape=INPUT_SHAPE,

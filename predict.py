@@ -125,7 +125,7 @@ for img_path in img_path_ds:
     img_name = img_name.decode()
     img_name_list.append(img_name)
 
-model = tf.keras.models.load_model(f'{MODELS_DIR}/{MODEL_NAME}', compile=False)
+model = tf.keras.models.load_model(f'{MODELS_DIR}/{DATASET}/{MODEL_NAME}', compile=False)
 
 eval_ids =   [7,8,11,12,13,17,19,20,21,22,23,24,25,26,27,28,31,32,33, 0] # MAP VOID CLASS TO 0 -> TOTAL BLACK 
 train_ids =  [0,1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19]
