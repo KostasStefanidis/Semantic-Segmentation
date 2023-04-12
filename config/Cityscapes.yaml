@@ -12,12 +12,12 @@ model:
 
 dataset:
   name: Cityscapes
-  path: /root/dataset/Cityscapes/
+  path: /mnt/dataset/Cityscapes/
   version: fine
   num_train_images: -1
   num_eval_images: -1
   cache: false
-  cache_file: /root/dataset/Cityscapes/data_cache
+  cache_file: /mnt/dataset/Cityscapes/data_cache
   seed: 80
 
 train_config:
