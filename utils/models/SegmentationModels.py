@@ -23,8 +23,8 @@ from keras.applications.regnet import RegNetY080,RegNetY120,RegNetY160,RegNetY32
 from keras.applications.efficientnet import EfficientNetB0, EfficientNetB1, EfficientNetB2
 from keras.applications.efficientnet import EfficientNetB3, EfficientNetB4, EfficientNetB5
 from keras.applications.efficientnet import EfficientNetB6, EfficientNetB7
-from efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2
-from efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
+from .efficientnet_v2 import EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2
+from .efficientnet_v2 import EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L
 import random
 
 kernel_seed = random.randint(0, 1000)

@@ -1,6 +1,5 @@
 import tensorflow as tf
-from CityscapesUtils import CityscapesDataset, color_map
-from MapillaryUtils import MapillaryDataset
+from utils.datasets import CityscapesDataset, cityscapes_color_map
 import os
 import numpy as np
 from argparse import ArgumentParser
@@ -151,8 +150,8 @@ for dataset_elem, filename in zip(ds, img_name_list):
     tf.keras.utils.save_img(f'{pred_path}/{filename}', grayscale_prediction, data_format='channels_last', scale=False)
     
     rgb_pred = np.zeros((*prediction.shape, 3)) 
-    for key in color_map.keys():
-        rgb_pred[prediction == key] = color_map[key]
+    for key in cityscapes_color_map.keys():
+        rgb_pred[prediction == key] = cityscapes_color_map[key]
         
     Y = 0.6
     rgb_img = Y * tf.squeeze(input_image).numpy() + (1-Y) * rgb_pred

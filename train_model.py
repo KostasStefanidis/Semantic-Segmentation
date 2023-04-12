@@ -4,11 +4,10 @@ from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.optimizers import Adam, SGD, Adadelta, Nadam
 from tensorflow_addons.optimizers import SGDW, AdamW, AdaBelief
 from keras import mixed_precision
-from SegmentationLosses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
-from CityscapesUtils import CityscapesDataset
-from MapillaryUtils import MapillaryDataset
-from EvaluationUtils import MeanIoU
-from SegmentationModels import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
+from utils.losses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
+from utils.datasets import CityscapesDataset, MapillaryDataset
+from utils.eval import MeanIoU
+from utils.models import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from tensorflow_addons.optimizers import CyclicalLearningRate
 from argparse import ArgumentParser
 import yaml

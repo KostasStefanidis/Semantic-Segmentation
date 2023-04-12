@@ -3,7 +3,7 @@ from tensorflow import Tensor
 from keras.layers import Resizing
 from keras.applications import resnet, resnet_v2, efficientnet, efficientnet_v2, regnet
 from keras.applications import mobilenet, mobilenet_v2, mobilenet_v3
-from AugmentationUtils import Augment
+from .AugmentationUtils import Augment
 
 
 class MapillaryDataset():
