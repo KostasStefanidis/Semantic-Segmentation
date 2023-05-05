@@ -49,7 +49,7 @@ The RGB Images look like the following:
 
 &nbsp;
 
-### The `run.sh` Performs model **training** and **evaluation** by default, and to optionally create the **predictions**. 
+### The `run.sh` performs model **training** and **evaluation** by default, and can optionally make **predictions** on the test set. 
 This script invokes the python scirpts and also adds all the logs and predictions of the given model to a zip archive when the predict flag is set.
 
 ```
