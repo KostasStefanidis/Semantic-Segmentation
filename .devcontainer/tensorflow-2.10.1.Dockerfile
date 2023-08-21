@@ -29,6 +29,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 && pip install --no-cache-dir -U scikit-learn==1.2.2 \
 && pip install --no-cache-dir PyYAML==6.0
 
+RUN pip install --no-cache-dir tensorflow_addons
+
 # configure git
 RUN git config --global user.name ${USERNAME} \
 && git config --global user.email ${GIT_USER_EMAIL}
