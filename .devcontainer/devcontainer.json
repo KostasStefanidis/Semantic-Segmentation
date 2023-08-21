@@ -1,0 +1,44 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "Tensorflow 2.10.1",
+	"dockerComposeFile": "docker-compose.yaml",
+	"service": "tensorflow",
+	"shutdownAction": "none",
+	"workspaceFolder": "/mnt/Semantic-Segmentation",
+
+	"customizations": {
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"KevinRose.vsc-python-indent",
+				"ms-toolsai.jupyter",
+				"ms-toolsai.vscode-jupyter-powertoys",
+				"magicstack.MagicPython",
+				"ms-python.vscode-pylance",
+				"ms-python.python",
+				"redhat.vscode-yaml",
+				"RSIP-Vision.nvidia-smi-plus",
+				"github.vscode-github-actions",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	},
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	}
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

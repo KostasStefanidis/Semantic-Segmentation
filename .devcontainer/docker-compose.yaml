@@ -1,0 +1,32 @@
+name: pytorch-devcontainer
+services:
+  tensorflow:
+    image: tensorflow:2.10.1
+    build:
+      context: .
+      dockerfile: tensorflow-2.10.1.Dockerfile
+      args:
+        OS_USER_ID: ${UID}
+        OS_GROUP_ID: ${GID}
+        USERNAME: ${USER}
+        GIT_USER_EMAIL: ${GIT_USER_EMAIL}
+      tags:
+        - "tensorflow:2.10.1"
+    container_name: tensorflow
+    hostname: tensorflow-container
+    user: ${USER}
+    tty: true
+    stdin_open: true
+    shm_size: 32G
+    working_dir: /mnt/
+    volumes:
+      - ${HOME}/Semantic-Segmentation:/mnt/Semantic-Segmentation
+      - ${DATAPATH}:/mnt/datasets:ro
+      - ${HOME}/logs/Semantic-Segmentation:/mnt/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
