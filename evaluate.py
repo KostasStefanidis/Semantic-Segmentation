@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
-from utils.datasets import CityscapesDataset, MapillaryDataset
-from utils.eval import MeanIoU
-from utils.losses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
-from utils.models import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
+from lib.datasets import CityscapesDataset, MapillaryDataset
+from lib.eval import MeanIoU
+from lib.losses import IoULoss, DiceLoss, TverskyLoss, FocalTverskyLoss, HybridLoss, FocalHybridLoss
+from lib.models import  Unet, Residual_Unet, Attention_Unet, Unet_plus, DeepLabV3plus
 from sklearn.metrics import ConfusionMatrixDisplay
 from matplotlib import pyplot as plt
 from argparse import ArgumentParser
