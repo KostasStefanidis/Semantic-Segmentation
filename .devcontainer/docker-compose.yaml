@@ -1,4 +1,4 @@
-name: pytorch-devcontainer
+name: tensorflow-devcontainer
 services:
   tensorflow:
     image: tensorflow:2.10.1
